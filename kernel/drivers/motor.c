@@ -67,7 +67,7 @@ motor_set_state (motor_port_id port, motor_state state)
  * this is done automatically on startup
  */
 static void
-__attribute__((constructor))
+//__attribute__((constructor))
 motor_init (void)
 {
   unsigned int i;
