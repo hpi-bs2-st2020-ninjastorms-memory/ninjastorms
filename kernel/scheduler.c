@@ -73,6 +73,11 @@ ring_buffer_remove (void)
   return task;
 }
 
+void task_exit()
+{
+    while(1);
+}
+
 int
 init_task (task_t *task, void *entrypoint, unsigned int stackbase)
 {
@@ -81,7 +86,7 @@ init_task (task_t *task, void *entrypoint, unsigned int stackbase)
     task->reg[i] = i;
 
   task->sp = stackbase;
-  task->lr = 0;
+  task->lr = (unsigned int) &task_exit;
   task->pc = (unsigned int) entrypoint;
 
 
