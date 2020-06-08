@@ -20,11 +20,13 @@
 
 .section .text.boot
 
+#include "kernel/memory.h"
+
 .globl Start
 Start:
 
   // setup the stack
-  ldr   sp, =__bss_end
+  ldr sp, =SVC_STACK_ADDRESS
 
   // save registers r0-r2 for kernel main
   push  {r0-r2}
