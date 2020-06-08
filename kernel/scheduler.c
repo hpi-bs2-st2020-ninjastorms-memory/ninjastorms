@@ -80,7 +80,6 @@ init_task (task_t *task, void *entrypoint, unsigned int stackbase)
 
   task->sp = stackbase;
   task->lr = 0;
-  task->lr = 0;
   task->pc = (unsigned int) entrypoint;
 
   task->cpsr = CPSR_MODE_USER;

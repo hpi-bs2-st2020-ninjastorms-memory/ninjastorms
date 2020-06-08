@@ -69,15 +69,15 @@ void
 setup_irq_stack (void)
 {
   asm volatile (
-    "mrs  r0, cpsr\n"
-    "bic  r0, #0x1f\n" // Clear mode bits
-    "orr  r0, #0x12\n" // Select IRQ mode
-    "msr  cpsr, r0\n"  // Enter IRQ mode
-    "mov  sp, %0\n"    // set stack pointer
-    "bic  r0, #0x1f\n" // Clear mode bits
-    "orr  r0, #0x13\n" // Select SVC mode
-    "msr  cpsr, r0\n"  // Enter SVC mode
-    : : "r" (IRQ_STACK_ADDRESS)
+    "mrs  r0, cpsr \n"
+    "bic  r0, #0x1f \n" // Clear mode bits
+    "orr  r0, #0x12 \n" // Select IRQ mode
+    "msr  cpsr, r0 \n"  // Enter IRQ mode
+    "mov  sp, %[irq_stack_address] \n"    // set stack pointer
+    "bic  r0, #0x1f \n" // Clear mode bits
+    "orr  r0, #0x13 \n" // Select SVC mode
+    "msr  cpsr, r0 \n"  // Enter SVC mode
+    : : [irq_stack_address] "r" (IRQ_STACK_ADDRESS)
   );
 }
 
