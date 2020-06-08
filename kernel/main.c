@@ -34,7 +34,7 @@ static void
 task_a (void)
 {
   unsigned int n = 0;
-
+  printf("a: My pid: %i\n",get_pid());
   while (1)
     {
       printf("  task a: %i\n", n++);
@@ -46,8 +46,7 @@ task_a (void)
 static void
 task_b (void)
 {
-  int my_pid = get_pid();
-  printf("b: My pid: %i\n",my_pid);
+  printf("b: My pid: %i\n",get_pid());
   unsigned int n = 0;
 
   while (1)
@@ -68,8 +67,13 @@ task_c (void)
   while (1)
     {
       printf("  task c: %i\n", n++);
+      if(n>3){
+          //That's enough for me
+          exit();
+      }
       volatile int i;
       for (i = 0; i < 10000000; ++i);
+
     }
 }
 
@@ -90,7 +94,7 @@ task_d (void)
       printf("  task d: %i\n", n++);
       volatile int i;
       for (i = 0; i < 10000000; ++i);
-      if(n>5){
+      if(n>10){
           //That's enough!
           shutdown();
       }

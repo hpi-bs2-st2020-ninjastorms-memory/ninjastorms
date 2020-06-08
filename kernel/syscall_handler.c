@@ -61,22 +61,26 @@ unsigned int syscall_zero_dispatch(void* data)
     return 0;
 }
 
-unsigned int create_process_dispatch(void* data)
+int create_process_dispatch(void* data)
 {
     create_process_spec spec = *((create_process_spec*) data);
     int result = add_task(spec.function);
-    if (result != -1){
-        //Successfully created task! return pid.
-        return result;
-    }
-    return -1;
+    return result;
 }
 
-unsigned int get_pid_dispatch(void* data){
+int exit_dispatch(void* data)
+{
+    exit_current_task();
+    return 0;
+}
+
+unsigned int get_pid_dispatch(void* data)
+{
     return current_task->pid;
 }
 
-unsigned int get_parent_pid_dispatch(void* data){
+unsigned int get_parent_pid_dispatch(void* data)
+{
     return current_task->parent_pid;
 }
 
@@ -100,6 +104,8 @@ unsigned int syscall_dispatcher(unsigned int syscallno, void *data)
             return syscall_zero_dispatch(data);
         case CREATE_PROCESS:
             return create_process_dispatch(data);
+        case EXIT:
+            return exit_dispatch(data);
         case GET_PID:
             return get_pid_dispatch(data);
         case GET_PARENT_PID:

@@ -26,6 +26,7 @@
 #include "kernel/interrupt_handler.h"
 
 #include <errno.h>
+#include <stdio.h>
 
 #define CPSR_MODE_SVC  0x13
 #define CPSR_MODE_USER 0x10
@@ -97,13 +98,35 @@ init_task (task_t *task, void *entrypoint, unsigned int stackbase)
 }
 
 void
-task_finished(){
-    //current_task is done. May be executed on end of process execution, exit or kill
+schedule_after_exit(void)
+{
+    current_task = ring_buffer_remove();
+    printf("New task will be Task %i",current_task->pid);
+}
+
+void
+exit_current_task(void)
+{
+    task_t* task_to_kill = current_task;
+    printf("Task %i will be killed\n",current_task->pid);
+    task_to_kill->valid = 0; //should be enough, but let's clean it nontheless
+    for(int i=0;i<=13;i++){
+        task_to_kill->reg[i]=0;
+    }
+    task_to_kill->lr = 0;
+    task_to_kill->pc = 0;
+    task_to_kill->sp = 0;
+    task_to_kill->cpsr = 0;
+    task_to_kill->pid = 0;
+    task_to_kill->parent_pid=0;
     
+    //currently the used pid will not be freed
+    task_count--;
+    schedule_after_exit();
 }
 
 int
-next_free_tasks_position()
+next_free_tasks_position(void)
 {
     for(int i=0;i<MAX_TASK_NUMBER;i++){
         if(!tasks[i].valid){

@@ -44,6 +44,8 @@ extern task_t *current_task;
 
 int add_task (void *entrypoint);
 
+void exit_current_task(void);
+
 void start_scheduler (void);
 
 void schedule (void);

@@ -21,11 +21,13 @@
 
 unsigned int syscall(unsigned int number, void* data);
 
-unsigned int create_process(void * function); 
+int create_process(void * function); 
 
 unsigned int get_pid();
 
 unsigned int get_parent_pid();
+
+int exit();
 
 unsigned int shutdown();
 

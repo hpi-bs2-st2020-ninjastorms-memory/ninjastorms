@@ -18,6 +18,7 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.   *
  ******************************************************************************/
 #include "syscall.h"
+#include <errno.h>
 
 unsigned int syscall(unsigned int number, void* data) 
 {
@@ -41,11 +42,16 @@ unsigned int syscall(unsigned int number, void* data)
     return ret;
 }
 
-unsigned int create_process(void * function) 
+int create_process(void * function) 
 {
     struct create_process_specification new_process;
     new_process.function = function;
     return syscall(1,&new_process);
+}
+
+int exit()
+{
+    return syscall(2,(void*) 0);
 }
 
 unsigned int get_pid(void)
@@ -56,6 +62,11 @@ unsigned int get_pid(void)
 unsigned int get_parent_pid(void)
 {
     return syscall(4,(void *) 0);
+}
+
+int kill(int pid_to_kill){
+    errno = ENOTIMPLEMENTED;
+    return -1;
 }
 
 unsigned int shutdown(void)
