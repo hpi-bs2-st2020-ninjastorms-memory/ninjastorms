@@ -68,6 +68,10 @@ unsigned int create_process_dispatch(void* data)
     return 0;
 }
 
+unsigned int get_pid_dispatch(void* data){
+    return current_task->pid;
+}
+
 unsigned int shutdown_dispatch(void* data)
 {
     // close all processes attached with hooks
@@ -88,6 +92,8 @@ unsigned int syscall_dispatcher(unsigned int syscallno, void *data)
             return syscall_zero_dispatch(data);
         case CREATE_PROCESS:
             return create_process_dispatch(data);
+        case GET_PID:
+            return get_pid_dispatch(data);
         case SHUTDOWN:
             return shutdown_dispatch(data);
         default:

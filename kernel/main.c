@@ -46,6 +46,8 @@ task_a (void)
 static void
 task_b (void)
 {
+  int my_pid = get_pid();
+  printf("b: My pid: %i\n",my_pid);
   unsigned int n = 0;
 
   while (1)
@@ -59,6 +61,8 @@ task_b (void)
 static void
 task_c (void)
 {
+  int my_pid = get_pid();
+  printf("c: My pid: %i",my_pid);
   unsigned int n = 0;
 
   while (1)
@@ -72,6 +76,8 @@ task_c (void)
 static void
 task_d (void)
 {
+  int my_pid = get_pid();
+  printf("d: My pid: %i\n",my_pid);
   unsigned int n = 0;
   int direct_call_result = add_task(&task_c);
   if(direct_call_result<0){

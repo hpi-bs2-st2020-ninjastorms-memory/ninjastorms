@@ -48,7 +48,14 @@ unsigned int create_process(void * function)
     return syscall(1,&new_process);
 }
 
+unsigned int get_pid(void)
+{
+    return syscall(3,(void *) 0);
+}
+
 unsigned int shutdown(void)
 {
     return syscall(99,(void *)0);
 }
+
+

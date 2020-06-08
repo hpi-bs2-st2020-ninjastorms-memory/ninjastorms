@@ -32,6 +32,7 @@ struct task_t
 	unsigned int lr;
 	unsigned int pc;
 	unsigned int cpsr;
+    unsigned int pid;
 };
 typedef struct task_t task_t;
 

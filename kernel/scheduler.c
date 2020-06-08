@@ -47,6 +47,7 @@ int isRunning    = 0;
 task_t tasks[MAX_TASK_NUMBER] = { 0 };
 task_t* ring_buffer[MAX_TASK_NUMBER] = { 0 };
 task_t* current_task = (void*)0;
+int next_pid = 1;
 
 // TODO: disable interrupts during insertion
 void
@@ -81,8 +82,14 @@ init_task (task_t *task, void *entrypoint, unsigned int stackbase)
   task->sp = stackbase;
   task->lr = 0;
   task->pc = (unsigned int) entrypoint;
+  task->pid = next_pid++;
 
   task->cpsr = CPSR_MODE_USER;
+}
+
+void
+task_finished(){
+    
 }
 
 int
@@ -98,6 +105,7 @@ add_task (void *entrypoint)
   }
 
   unsigned int stackbase = TASK_STACK_BASE_ADDRESS - STACK_SIZE*task_count;
+  // push &task_finished
   init_task(&tasks[task_count], entrypoint, stackbase);
   ring_buffer_insert(&tasks[task_count]);
   task_count++;
