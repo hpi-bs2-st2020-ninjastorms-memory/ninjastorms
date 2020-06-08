@@ -64,12 +64,20 @@ unsigned int syscall_zero_dispatch(void* data)
 unsigned int create_process_dispatch(void* data)
 {
     create_process_spec spec = *((create_process_spec*) data);
-    add_task(spec.function);
-    return 0;
+    int result = add_task(spec.function);
+    if (result != -1){
+        //Successfully created task! return pid.
+        return result;
+    }
+    return -1;
 }
 
 unsigned int get_pid_dispatch(void* data){
     return current_task->pid;
+}
+
+unsigned int get_parent_pid_dispatch(void* data){
+    return current_task->parent_pid;
 }
 
 unsigned int shutdown_dispatch(void* data)
@@ -94,6 +102,8 @@ unsigned int syscall_dispatcher(unsigned int syscallno, void *data)
             return create_process_dispatch(data);
         case GET_PID:
             return get_pid_dispatch(data);
+        case GET_PARENT_PID:
+            return get_parent_pid_dispatch(data);
         case SHUTDOWN:
             return shutdown_dispatch(data);
         default:

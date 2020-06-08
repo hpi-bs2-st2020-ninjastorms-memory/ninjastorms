@@ -62,7 +62,7 @@ static void
 task_c (void)
 {
   int my_pid = get_pid();
-  printf("c: My pid: %i",my_pid);
+  printf("c: My pid: %i, my parent is pid %i\n",my_pid, get_parent_pid());
   unsigned int n = 0;
 
   while (1)
@@ -78,11 +78,13 @@ task_d (void)
 {
   int my_pid = get_pid();
   printf("d: My pid: %i\n",my_pid);
+  create_process(&task_c);
   unsigned int n = 0;
+  /* Testing for permissions
   int direct_call_result = add_task(&task_c);
   if(direct_call_result<0){
     printf("add task failed with errno %i \n",errno);
-  }
+  }*/
   while (1)
     {
       printf("  task d: %i\n", n++);
@@ -97,10 +99,13 @@ task_d (void)
 
 
 static void
-syscall_test(void)
+user_mode_init(void)
 {
-    create_process(&task_a);
+    printf("User mode initialized with pid: %i", get_pid());
+    int a_pid = create_process(&task_a);
+    printf("Starting a, assigned pid: %i", a_pid);
     create_process(&task_b);
+    create_process(&task_d);
 }
 
 
@@ -119,12 +124,7 @@ kernel_main (void)
   puts("  shuriken ready");
   puts(shuriken);
 
-  //add_task(&task_a);
-  //add_task(&task_b);
-  //add_task(&task_c);
-  add_task(&task_d);
-  add_task(&syscall_test);
-
+  add_task(&user_mode_init);
   start_scheduler();
 
   puts("All done. ninjastorms out!");

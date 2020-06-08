@@ -53,6 +53,11 @@ unsigned int get_pid(void)
     return syscall(3,(void *) 0);
 }
 
+unsigned int get_parent_pid(void)
+{
+    return syscall(4,(void *) 0);
+}
+
 unsigned int shutdown(void)
 {
     return syscall(99,(void *)0);

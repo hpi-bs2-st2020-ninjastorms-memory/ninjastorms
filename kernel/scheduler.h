@@ -34,6 +34,7 @@ struct task_t
 	unsigned int cpsr;
     
     unsigned int pid;
+    unsigned int parent_pid;
     
     char valid; //used for navigating the array
 };

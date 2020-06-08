@@ -31,5 +31,6 @@ enum SYSCALL_NUMBER {
     CREATE_PROCESS = 1,
     EXIT = 2, //Not implemented, requires process data structure
     GET_PID = 3,
+    GET_PARENT_PID = 4,
     SHUTDOWN = 99
 }; 

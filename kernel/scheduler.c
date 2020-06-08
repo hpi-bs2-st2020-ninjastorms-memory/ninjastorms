@@ -46,8 +46,8 @@ int buffer_end   = 0;
 int isRunning    = 0;
 task_t tasks[MAX_TASK_NUMBER] = {0};
 task_t* ring_buffer[MAX_TASK_NUMBER] = { 0 };
-task_t* current_task = (void*)0;
-int next_pid = 1;
+task_t* current_task = &tasks[0];
+int next_pid = 0;
 
 // TODO: disable interrupts during insertion
 void
@@ -65,14 +65,14 @@ task_t*
 ring_buffer_remove (void)
 {
   if (buffer_start == buffer_end)
-    return 0;
+    return &tasks[0];
 
   task_t* task = ring_buffer[buffer_start];
   buffer_start = (buffer_start + 1) % MAX_TASK_NUMBER;
   return task;
 }
 
-void
+int
 init_task (task_t *task, void *entrypoint, unsigned int stackbase)
 {
   int i;
@@ -86,14 +86,20 @@ init_task (task_t *task, void *entrypoint, unsigned int stackbase)
 
   task->cpsr = CPSR_MODE_USER;
   
-  task->pid = next_pid++;
+  unsigned int new_pid = next_pid++;
+  
+  task->pid = new_pid;
+  task->parent_pid = current_task->pid;
   
   task->valid = 1;
+  
+  return new_pid;
 }
 
 void
 task_finished(){
-    //should be automatically called on task finish
+    //current_task is done. May be executed on end of process execution, exit or kill
+    
 }
 
 int
@@ -107,6 +113,9 @@ next_free_tasks_position()
     return -1;
 }
 
+/*
+ * returns new tasks' pid or -1
+ */
 int
 add_task (void *entrypoint)
 {
@@ -123,11 +132,12 @@ add_task (void *entrypoint)
 
   unsigned int stackbase = TASK_STACK_BASE_ADDRESS - STACK_SIZE*new_task_pos;
   // push &task_finished
-  init_task(&tasks[new_task_pos], entrypoint, stackbase);
+  unsigned int new_pid = init_task(&tasks[new_task_pos], entrypoint, stackbase);
   ring_buffer_insert(&tasks[new_task_pos]);
   task_count++;
-  return 0;
+  return new_pid;
 }
+
 
 void
 schedule (void)
