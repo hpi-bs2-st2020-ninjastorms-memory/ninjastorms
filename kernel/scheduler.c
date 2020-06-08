@@ -44,7 +44,7 @@ int task_count   = 0;
 int buffer_start = 0;
 int buffer_end   = 0;
 int isRunning    = 0;
-task_t tasks[MAX_TASK_NUMBER] = { 0 };
+task_t tasks[MAX_TASK_NUMBER] = {0};
 task_t* ring_buffer[MAX_TASK_NUMBER] = { 0 };
 task_t* current_task = (void*)0;
 int next_pid = 1;
@@ -82,14 +82,29 @@ init_task (task_t *task, void *entrypoint, unsigned int stackbase)
   task->sp = stackbase;
   task->lr = 0;
   task->pc = (unsigned int) entrypoint;
-  task->pid = next_pid++;
+
 
   task->cpsr = CPSR_MODE_USER;
+  
+  task->pid = next_pid++;
+  
+  task->valid = 1;
 }
 
 void
 task_finished(){
-    
+    //should be automatically called on task finish
+}
+
+int
+next_free_tasks_position()
+{
+    for(int i=0;i<MAX_TASK_NUMBER;i++){
+        if(!tasks[i].valid){
+            return i;
+        }
+    }
+    return -1;
 }
 
 int
@@ -103,11 +118,13 @@ add_task (void *entrypoint)
     errno = ETOOMANYTASKS;
     return -1;
   }
+  
+  int new_task_pos = next_free_tasks_position();
 
-  unsigned int stackbase = TASK_STACK_BASE_ADDRESS - STACK_SIZE*task_count;
+  unsigned int stackbase = TASK_STACK_BASE_ADDRESS - STACK_SIZE*new_task_pos;
   // push &task_finished
-  init_task(&tasks[task_count], entrypoint, stackbase);
-  ring_buffer_insert(&tasks[task_count]);
+  init_task(&tasks[new_task_pos], entrypoint, stackbase);
+  ring_buffer_insert(&tasks[new_task_pos]);
   task_count++;
   return 0;
 }
@@ -118,6 +135,7 @@ schedule (void)
   ring_buffer_insert(current_task);
   current_task = ring_buffer_remove();
 }
+
 
 void
 start_scheduler (void)
