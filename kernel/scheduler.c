@@ -102,6 +102,7 @@ schedule_after_exit(void)
 {
     current_task = ring_buffer_remove();
     printf("New task will be Task %i",current_task->pid);
+    load_current_task_state();
 }
 
 void
@@ -153,7 +154,7 @@ add_task (void *entrypoint)
   
   int new_task_pos = next_free_tasks_position();
 
-  unsigned int stackbase = TASK_STACK_BASE_ADDRESS - STACK_SIZE*new_task_pos;
+  unsigned int stackbase = TASK_STACK_BASE_ADDRESS - STACK_SIZE * new_task_pos;
   // push &task_finished
   unsigned int new_pid = init_task(&tasks[new_task_pos], entrypoint, stackbase);
   ring_buffer_insert(&tasks[new_task_pos]);
