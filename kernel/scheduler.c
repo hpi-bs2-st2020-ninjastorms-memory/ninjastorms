@@ -24,6 +24,7 @@
 #include "kernel/drivers/timer.h"
 #include "kernel/interrupt.h"
 #include "kernel/interrupt_handler.h"
+#include "syscall.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -75,7 +76,12 @@ ring_buffer_remove (void)
 
 void task_exit()
 {
-    while(1);
+    /*
+     * This is called when a process has executed all its statements.
+     * Thus task_exit() will be executed in user mode, requiring a syscall
+     * to properly exit the process
+     */
+    exit();
 }
 
 int
@@ -115,6 +121,7 @@ exit_current_task(void)
 {
     task_t* task_to_kill = current_task;
     printf("Task %i will be killed\n",current_task->pid);
+    // should be replaced by memset(task_to_kill,0,size_of(task_t));
     task_to_kill->valid = 0; //should be enough, but let's clean it nontheless
     for(int i=0;i<=13;i++){
         task_to_kill->reg[i]=0;

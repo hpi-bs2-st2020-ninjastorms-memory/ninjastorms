@@ -54,6 +54,11 @@ task_b (void)
       printf("  task b: %i\n", n++);
       volatile int i;
       for (i = 0; i < 10000000; ++i);
+      if(n>10){
+            //Enough of b!
+          return;
+          //This will automatically call exit()
+      }
     }
 }
 
@@ -73,7 +78,6 @@ task_c (void)
       }
       volatile int i;
       for (i = 0; i < 10000000; ++i);
-
     }
 }
 
@@ -94,8 +98,8 @@ task_d (void)
       printf("  task d: %i\n", n++);
       volatile int i;
       for (i = 0; i < 10000000; ++i);
-      if(n>10){
-          //That's enough!
+      if(n>15){
+          //That's enough for everyone!
           shutdown();
       }
     }
@@ -105,9 +109,9 @@ task_d (void)
 static void
 user_mode_init(void)
 {
-    printf("User mode initialized with pid: %i", get_pid());
+    printf("User mode initialized with pid: %i\n", get_pid());
     int a_pid = create_process(&task_a);
-    printf("Starting a, assigned pid: %i", a_pid);
+    printf("Starting a, assigned pid: %i\n", a_pid);
     create_process(&task_b);
     create_process(&task_d);
 }
