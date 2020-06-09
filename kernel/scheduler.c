@@ -49,7 +49,7 @@ int isRunning    = 0;
 task_t tasks[MAX_TASK_NUMBER] = {0};
 task_t* ring_buffer[MAX_TASK_NUMBER] = { 0 };
 task_t* current_task = &tasks[0];
-int next_pid = 0;
+int next_pid = 1;
 
 // TODO: disable interrupts during insertion
 void
@@ -101,7 +101,13 @@ init_task (task_t *task, void *entrypoint, unsigned int stackbase)
   unsigned int new_pid = next_pid++;
   
   task->pid = new_pid;
-  task->parent_pid = current_task->pid;
+  if(new_pid == 1){
+      //init process
+      task->parent_pid = 1;
+  } else {
+      task->parent_pid = current_task->pid;
+  }
+  
   
   task->valid = 1;
   
@@ -237,15 +243,14 @@ print_task_debug_info (void)
     printf("Tasks-Array\n");
     char tasksinfo[MAX_TASK_NUMBER] = {0};
     for(int i=0;i<MAX_TASK_NUMBER;i++){
-        tasksinfo[i]=88; //X
         if (tasks[i].valid==1){
-            tasksinfo[i] = tasks[i].pid+48; //Number as char (only supports 10 tasks)
+            tasksinfo[i] = tasks[i].pid;
         }
     }
-    printf("[%c][%c][%c][%c][%c][%c][%c][%c]\n",
+    printf("[%i][%i][%i][%i][%i][%i][%i][%i]\n",
            tasksinfo[0],tasksinfo[1],tasksinfo[2],tasksinfo[3],
            tasksinfo[4],tasksinfo[5],tasksinfo[6],tasksinfo[7]);
-    printf("[%c][%c][%c][%c][%c][%c][%c][%c]\n",
+    printf("[%i][%i][%i][%i][%i][%i][%i][%i]\n",
            tasksinfo[8],tasksinfo[9],tasksinfo[10],tasksinfo[11],
            tasksinfo[12],tasksinfo[13],tasksinfo[14],tasksinfo[15]);
      printf("-------------------------------\n");

@@ -33,8 +33,10 @@
 static void
 task_a (void)
 {
-  unsigned int n = 0;
   printf("a: My pid: %i\n",get_pid());
+  print_tasks_info();
+  unsigned int n = 0;
+
   while (1)
     {
       printf("  task a: %i\n", n++);
@@ -54,7 +56,7 @@ task_b (void)
       printf("  task b: %i\n", n++);
       volatile int i;
       for (i = 0; i < 10000000; ++i);
-      if(n>10){
+      if(n>7){
             //Enough of b!
           return;
           //This will automatically call exit()
@@ -113,13 +115,28 @@ task_d (void)
     }
 }
 
+static void
+task_e (void)
+{
+  unsigned int n = 0;
+  printf("e: My pid: %i\n",get_pid());
+  while (1)
+    {
+      printf("  task e: %i\n", n++);
+      volatile int i;
+      for (i = 0; i < 10000000; ++i);
+      if(n==10){
+          create_process(&task_a);
+      }
+    }
+}
+
 
 static void
 user_mode_init(void)
 {
     printf("User mode initialized with pid: %i\n", get_pid());
-    int a_pid = create_process(&task_a);
-    printf("Starting a, assigned pid: %i\n", a_pid);
+    create_process(&task_e);
     create_process(&task_b);
     create_process(&task_d);
     print_tasks_info();
