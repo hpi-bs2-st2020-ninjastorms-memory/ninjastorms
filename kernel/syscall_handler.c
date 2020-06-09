@@ -91,6 +91,12 @@ unsigned int is_predecessor_dispatch(void* data)
     return result;
 }
 
+int task_info_dispatch(void* data)
+{
+    print_task_debug_info();
+    return 0;
+}
+
 unsigned int shutdown_dispatch(void* data)
 {
     // close all processes attached with hooks
@@ -119,6 +125,8 @@ unsigned int syscall_dispatcher(unsigned int syscallno, void *data)
             return get_parent_pid_dispatch(data);
         case IS_PREDECESSOR:
             return is_predecessor_dispatch(data);
+        case TASKS_INFO:
+            return task_info_dispatch(data);
         case SHUTDOWN:
             return shutdown_dispatch(data);
         default:

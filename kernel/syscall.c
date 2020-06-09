@@ -78,6 +78,11 @@ int is_predecessor(int child, int pred)
     return syscall(6,&is_pred_spec);
 }
 
+int print_tasks_info(void)
+{
+    return syscall(42,(void *) 0);
+}
+
 unsigned int shutdown(void)
 {
     return syscall(99,(void *)0);

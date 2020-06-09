@@ -133,6 +133,7 @@ exit_current_task(void)
     task_to_kill->pid = 0;
     task_to_kill->parent_pid=0;
     
+    // zeroing the stack should be done
     //currently the used pid will not be freed
     task_count--;
     schedule_after_exit();
@@ -225,4 +226,27 @@ process_is_descendent_of(int child, int pred)
         }
     }
     return current_parent == pred;
+}
+
+void
+print_task_debug_info (void)
+{
+    printf("-----------TASKS INFO-----------\n");
+    printf("Current process\n----------\nPID:%i  PARENT:%i\n----------\n",
+           current_task->pid, current_task->parent_pid);
+    printf("Tasks-Array\n");
+    char tasksinfo[MAX_TASK_NUMBER] = {0};
+    for(int i=0;i<MAX_TASK_NUMBER;i++){
+        tasksinfo[i]=88; //X
+        if (tasks[i].valid==1){
+            tasksinfo[i] = tasks[i].pid+48; //Number as char (only supports 10 tasks)
+        }
+    }
+    printf("[%c][%c][%c][%c][%c][%c][%c][%c]\n",
+           tasksinfo[0],tasksinfo[1],tasksinfo[2],tasksinfo[3],
+           tasksinfo[4],tasksinfo[5],tasksinfo[6],tasksinfo[7]);
+    printf("[%c][%c][%c][%c][%c][%c][%c][%c]\n",
+           tasksinfo[8],tasksinfo[9],tasksinfo[10],tasksinfo[11],
+           tasksinfo[12],tasksinfo[13],tasksinfo[14],tasksinfo[15]);
+     printf("-------------------------------\n");
 }

@@ -51,3 +51,5 @@ void start_scheduler (void);
 void schedule (void);
 
 int process_is_descendent_of(int child, int pred);
+
+void print_task_debug_info (void);

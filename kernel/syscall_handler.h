@@ -34,5 +34,6 @@ enum SYSCALL_NUMBER {
     GET_PARENT_PID = 4,
     KILL = 5, // Not implemented
     IS_PREDECESSOR = 6,
+    TASKS_INFO = 42,
     SHUTDOWN = 99
 }; 

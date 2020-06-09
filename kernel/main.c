@@ -107,6 +107,7 @@ task_d (void)
       for (i = 0; i < 10000000; ++i);
       if(n>15){
           //That's enough for everyone!
+          print_tasks_info();
           shutdown();
       }
     }
@@ -121,7 +122,8 @@ user_mode_init(void)
     printf("Starting a, assigned pid: %i\n", a_pid);
     create_process(&task_b);
     create_process(&task_d);
-    while(1);
+    print_tasks_info();
+    while(1); //init will run forever
 }
 
 

@@ -31,6 +31,8 @@ unsigned int get_parent_pid();
 
 int is_predecessor(int child, int pred);
 
+int print_tasks_info(void);
+
 unsigned int shutdown();
 
 struct create_process_specification{
