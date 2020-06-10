@@ -253,5 +253,19 @@ print_task_debug_info (void)
     printf("[%i][%i][%i][%i][%i][%i][%i][%i]\n",
            tasksinfo[8],tasksinfo[9],tasksinfo[10],tasksinfo[11],
            tasksinfo[12],tasksinfo[13],tasksinfo[14],tasksinfo[15]);
-     printf("-------------------------------\n");
+    printf("------------\n----Scheduling-Buffer----\n");
+    printf("Buffer start: %i, Buffer end: %i, Task count %i\n",buffer_start,buffer_end,task_count);
+    int tasksbufferinfo[MAX_TASK_NUMBER] = {0};
+    for(int i=0;i<MAX_TASK_NUMBER;i++){
+        if(ring_buffer[i]!=0){
+            tasksbufferinfo[i]=ring_buffer[i]->pid;
+        }
+    }
+    printf("[%i][%i][%i][%i][%i][%i][%i][%i]\n",
+           tasksbufferinfo[0],tasksbufferinfo[1],tasksbufferinfo[2],tasksbufferinfo[3],
+           tasksbufferinfo[4],tasksbufferinfo[5],tasksbufferinfo[6],tasksbufferinfo[7]);
+    printf("[%i][%i][%i][%i][%i][%i][%i][%i]\n",
+           tasksbufferinfo[8],tasksbufferinfo[9],tasksbufferinfo[10],tasksbufferinfo[11],
+           tasksbufferinfo[12],tasksbufferinfo[13],tasksbufferinfo[14],tasksbufferinfo[15]);
+    printf("-------------------------------\n");
 }

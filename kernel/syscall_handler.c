@@ -104,15 +104,10 @@ unsigned int shutdown_dispatch(void* data)
     halt_execution();
 }
 
-void* dispatch_routines[2] = {
-    &syscall_zero_dispatch,
-    &create_process_dispatch};
-
 unsigned int syscall_dispatcher(unsigned int syscallno, void *data) 
 {
     printf("Handling syscall %i with data at address %x.\n", syscallno, data);
-    //unsigned int (*dispatch_routines[syscallno])(data); OPTION1
-    switch(syscallno){ //OPTION2
+    switch(syscallno){ 
         case ZERO_SYSCALL:
             return syscall_zero_dispatch(data);
         case CREATE_PROCESS:
