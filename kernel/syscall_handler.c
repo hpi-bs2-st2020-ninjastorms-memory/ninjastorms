@@ -20,7 +20,7 @@
 
 #include "syscall_handler.h"
 #include "syscall.h"
-#include "scheduler.h"
+#include "tasks.h"
 #include "utilities.h"
 
 #include <stdio.h>

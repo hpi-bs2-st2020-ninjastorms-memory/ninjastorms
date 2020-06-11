@@ -19,7 +19,7 @@
  ******************************************************************************/ 
 
 #include "utilities.h"
-#include "scheduler.h"
+#include "tasks.h"
 
 unsigned int get_operating_mode(void)
 {

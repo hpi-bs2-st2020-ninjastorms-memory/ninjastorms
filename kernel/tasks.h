@@ -24,14 +24,34 @@
 #  include <config.h>
 #endif
 
-#include "tasks.h"
+#define MAX_TASK_NUMBER 16
 
-void schedule_after_exit(void);
+struct task_t
+{
+  // r01..r12, sp, lr, pc
+	unsigned int reg[13];
+	unsigned int sp;
+	unsigned int lr;
+	unsigned int pc;
+	unsigned int cpsr;
+    
+    unsigned int pid;
+    unsigned int parent_pid;
+    
+    char valid; //used for navigating the array
+};
+typedef struct task_t task_t;
 
-void rebuild_ring_buffer(void);
+extern task_t *current_task;
 
-void start_scheduler (void);
+extern task_t tasks[MAX_TASK_NUMBER];
 
-void print_ring_buffer_debug_info (void);
+int add_task (void *entrypoint);
 
-int insert_task(task_t* new_task);
+void exit_current_task(void);
+
+int process_is_descendent_of(int child, int pred);
+
+int kill_process(int target);
+
+void print_task_debug_info (void);

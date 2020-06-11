@@ -22,6 +22,7 @@
 
 #include "kernel/drivers/button.h"
 #include "kernel/scheduler.h"
+#include "kernel/tasks.h"
 #include "memory.h"
 #include "kernel/utilities.h"
 
