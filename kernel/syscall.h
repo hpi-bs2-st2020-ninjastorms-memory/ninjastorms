@@ -25,9 +25,20 @@ int create_process(void * function);
 
 int exit();
 
+unsigned int get_pid();
+
+unsigned int get_parent_pid();
+
+int is_predecessor(int child, int pred);
+
 unsigned int shutdown();
 
-typedef struct create_process_specification{
+struct create_process_specification{
     void * function;
     //int parent_pid;
-} create_process_spec;
+};
+
+struct is_predecessor_specification{
+    int child;
+    int pred;
+};

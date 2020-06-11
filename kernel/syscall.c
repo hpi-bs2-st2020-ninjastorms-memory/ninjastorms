@@ -64,9 +64,18 @@ unsigned int get_parent_pid(void)
     return syscall(4,(void *) 0);
 }
 
-int kill(int pid_to_kill){
+int kill(int pid_to_kill)
+{
     errno = ENOTIMPLEMENTED;
     return -1;
+}
+
+int is_predecessor(int child, int pred)
+{
+    struct is_predecessor_specification is_pred_spec;
+    is_pred_spec.child = child;
+    is_pred_spec.pred  = pred;
+    return syscall(6,&is_pred_spec);
 }
 
 unsigned int shutdown(void)

@@ -49,3 +49,5 @@ void exit_current_task(void);
 void start_scheduler (void);
 
 void schedule (void);
+
+int process_is_descendent_of(int child, int pred);

@@ -63,7 +63,7 @@ unsigned int syscall_zero_dispatch(void* data)
 
 int create_process_dispatch(void* data)
 {
-    create_process_spec spec = *((create_process_spec*) data);
+    struct create_process_specification spec = *((struct create_process_specification*) data);
     int result = add_task(spec.function);
     return result;
 }
@@ -82,6 +82,13 @@ unsigned int get_pid_dispatch(void* data)
 unsigned int get_parent_pid_dispatch(void* data)
 {
     return current_task->parent_pid;
+}
+
+unsigned int is_predecessor_dispatch(void* data)
+{
+    struct is_predecessor_specification spec = *((struct is_predecessor_specification*) data);
+    int result = process_is_descendent_of(spec.child,spec.pred);
+    return result;
 }
 
 unsigned int shutdown_dispatch(void* data)
@@ -110,6 +117,8 @@ unsigned int syscall_dispatcher(unsigned int syscallno, void *data)
             return get_pid_dispatch(data);
         case GET_PARENT_PID:
             return get_parent_pid_dispatch(data);
+        case IS_PREDECESSOR:
+            return is_predecessor_dispatch(data);
         case SHUTDOWN:
             return shutdown_dispatch(data);
         default:

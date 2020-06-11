@@ -196,3 +196,33 @@ start_scheduler (void)
       load_current_task_state();
     }
 }
+
+// check if process with pid pred is predecessor (parent of parent ...) with pid child 
+int
+process_is_descendent_of(int child, int pred)
+{
+    if(child == pred){
+        //question of definition
+        return 1;
+    }
+    int current_parent = -1;
+    for(int i=0;i<MAX_TASK_NUMBER;i++){
+        if (tasks[i].pid == child){
+            current_parent = tasks[i].parent_pid;
+            break;
+        }
+    }
+    if (current_parent == -1){
+        // pid child is not a task!
+        return 0;
+    }
+    while (! (current_parent==1 || current_parent == pred || current_parent==0)){
+        for(int i=0;i<MAX_TASK_NUMBER;i++){
+            if (tasks[i].pid == current_parent){
+                current_parent = tasks[i].parent_pid;
+                break;
+            }
+        }
+    }
+    return current_parent == pred;
+}
