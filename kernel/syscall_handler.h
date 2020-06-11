@@ -32,7 +32,7 @@ enum SYSCALL_NUMBER {
     EXIT = 2,
     GET_PID = 3,
     GET_PARENT_PID = 4,
-    KILL = 5, // Not implemented
+    KILL = 5,
     IS_PREDECESSOR = 6,
     TASKS_INFO = 42,
     SHUTDOWN = 99

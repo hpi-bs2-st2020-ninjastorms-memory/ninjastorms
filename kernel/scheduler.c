@@ -123,24 +123,47 @@ schedule_after_exit(void)
 }
 
 void
-exit_current_task(void)
+clear_task(task_t* task_to_clear)
 {
-    task_t* task_to_kill = current_task;
-    printf("Task %i will be killed\n",current_task->pid);
-    // should be replaced by memset(task_to_kill,0,size_of(task_t));
-    task_to_kill->valid = 0; //should be enough, but let's clean it nontheless
+    // should be replaced by memset(task_to_clear,0,size_of(task_t));
+    task_to_clear->valid = 0; //should be enough, but let's clean it nontheless
     for(int i=0;i<=13;i++){
-        task_to_kill->reg[i]=0;
+        task_to_clear->reg[i]=0;
     }
-    task_to_kill->lr = 0;
-    task_to_kill->pc = 0;
-    task_to_kill->sp = 0;
-    task_to_kill->cpsr = 0;
-    task_to_kill->pid = 0;
-    task_to_kill->parent_pid=0;
+    task_to_clear->lr = 0;
+    task_to_clear->pc = 0;
+    task_to_clear->sp = 0;
+    task_to_clear->cpsr = 0;
+    task_to_clear->pid = 0;
+    task_to_clear->parent_pid=0;
     
     // zeroing the stack should be done
     //currently the used pid will not be freed
+}
+
+
+void
+reparent_tasks(int killed_pid){
+    
+    // All tasks that have killed_pid as parent will now have 1 as parent (init)
+    for(int i=0;i<MAX_TASK_NUMBER;i++){
+        if(tasks[i].valid == 1 && tasks[i].parent_pid == killed_pid){
+            tasks[i].parent_pid = 1;
+        }
+    }
+}
+
+void
+exit_current_task(void)
+{
+    task_t* task_to_kill = current_task;
+    int pid_to_kill = current_task->pid;
+    printf("Task %i will be exited\n",pid_to_kill);
+    
+    clear_task(task_to_kill);
+    
+    reparent_tasks(pid_to_kill);
+    
     task_count--;
     schedule_after_exit();
 }
@@ -232,6 +255,48 @@ process_is_descendent_of(int child, int pred)
         }
     }
     return current_parent == pred;
+}
+
+void
+rebuild_ring_buffer(void)
+{
+    int buffer_position = 0;
+    buffer_start = 0;
+    for(int i=0;i<MAX_TASK_NUMBER;i++){
+        if(tasks[i].valid == 1){
+            ring_buffer[buffer_position] = &tasks[i];
+            buffer_position++;
+        }
+    }
+    buffer_end = buffer_position;
+}
+
+int kill_process(int target)
+{
+    // Don't use kill on the current task, use exit() instead.
+    if(target == current_task->pid){
+        return -1;
+    }
+    task_t* task_to_kill = (void*) 0;
+    for(int i=0;i<MAX_TASK_NUMBER;i++){
+        if(tasks[i].valid == 1 && tasks[i].pid == target){
+            task_to_kill = &tasks[i];
+        }
+    }
+    // Task with that pid does not exist
+    if(task_to_kill == (void*) 0){
+        return -1;
+    }
+    
+    clear_task(task_to_kill);
+    task_count--;
+    
+    reparent_tasks(target);
+    
+    //remove task from ring buffer by building new ring buffer
+    rebuild_ring_buffer();
+    
+    return 0;    
 }
 
 void

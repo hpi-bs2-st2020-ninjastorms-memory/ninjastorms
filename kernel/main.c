@@ -39,9 +39,12 @@ task_a (void)
 
   while (1)
     {
-      printf("  task a: %i\n", n++);
-      volatile int i;
-      for (i = 0; i < 10000000; ++i);
+        printf("  task a: %i\n", n++);
+        volatile int i;
+        for (i = 0; i < 10000000; ++i);
+        if(n==7){
+            print_tasks_info();
+        }
     }
 }
 
@@ -104,14 +107,14 @@ task_d (void)
   }*/
   while (1)
     {
-      printf("  task d: %i\n", n++);
-      volatile int i;
-      for (i = 0; i < 10000000; ++i);
-      if(n>15){
-          //That's enough for everyone!
-          print_tasks_info();
-          shutdown();
-      }
+        printf("  task d: %i\n", n++);
+        volatile int i;
+        for (i = 0; i < 10000000; ++i);
+        if(n>25){
+            //That's enough for everyone!
+            print_tasks_info();
+            shutdown();
+        }
     }
 }
 
@@ -136,9 +139,12 @@ static void
 user_mode_init(void)
 {
     printf("User mode initialized with pid: %i\n", get_pid());
-    create_process(&task_e);
+    int e_pid = create_process(&task_e);
     create_process(&task_b);
     create_process(&task_d);
+    print_tasks_info();
+    for(int i=0;i<150000000; ++i);
+    kill(e_pid);
     print_tasks_info();
     while(1); //init will run forever
 }

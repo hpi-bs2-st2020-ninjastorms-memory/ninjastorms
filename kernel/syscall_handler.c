@@ -37,21 +37,21 @@ unsigned int syscall_handler()
     
     asm(
         "mov %[syscallno], r0 \n"    // retrieve syscall number
-
+        
         "mov %[data], r1 \n"    // retrieve data
         
         : [syscallno] "=r" (syscallno),
-          [data] "=r" (data)
+        [data] "=r" (data)
     );
-
+    
     // stores return value in r0
     syscall_dispatcher(syscallno, data);
-
+    
     // return from software interrupt and restore cpsr
     asm(
         "add sp, sp, #8 \n"  // discard two values from stack (local vars)
-        "pop {r11, lr} \n"   // restore link register and (frame pointer)?
-        "movs pc, lr \n"     // return from svc (return and restore cpsr)
+    "pop {r11, lr} \n"   // restore link register and (frame pointer)?
+    "movs pc, lr \n"     // return from svc (return and restore cpsr)
     );
 }
 
@@ -82,6 +82,21 @@ unsigned int get_pid_dispatch(void* data)
 unsigned int get_parent_pid_dispatch(void* data)
 {
     return current_task->parent_pid;
+}
+
+int kill_dispatch(void* data)
+{
+    struct kill_specification spec = *((struct kill_specification*) data);
+    int target = spec.pid;
+    if(target == current_task->pid){
+        printf("Do not call kill() on yourself! Use exit() instead.\n");
+        return -1;
+    }
+    if(has_rights(current_task->pid, target)){
+        return kill_process(target);
+    }
+    errno = EPERMISSION;
+    return -1;
 }
 
 unsigned int is_predecessor_dispatch(void* data)
@@ -118,6 +133,8 @@ unsigned int syscall_dispatcher(unsigned int syscallno, void *data)
             return get_pid_dispatch(data);
         case GET_PARENT_PID:
             return get_parent_pid_dispatch(data);
+        case KILL:
+            return kill_dispatch(data);
         case IS_PREDECESSOR:
             return is_predecessor_dispatch(data);
         case TASKS_INFO:

@@ -52,4 +52,6 @@ void schedule (void);
 
 int process_is_descendent_of(int child, int pred);
 
+int kill_process(int target);
+
 void print_task_debug_info (void);

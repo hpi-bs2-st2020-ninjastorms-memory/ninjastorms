@@ -23,3 +23,5 @@
 unsigned int is_privileged(void);
 
 void halt_execution(void);
+
+int has_rights(int calling_process, int target);

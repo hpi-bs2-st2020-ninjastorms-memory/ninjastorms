@@ -46,7 +46,7 @@ int create_process(void * function)
 {
     struct create_process_specification new_process;
     new_process.function = function;
-    return syscall(1,&new_process);
+    return syscall(1, &new_process);
 }
 
 int exit()
@@ -64,10 +64,11 @@ unsigned int get_parent_pid(void)
     return syscall(4,(void *) 0);
 }
 
-int kill(int pid_to_kill)
+int kill(unsigned int target)
 {
-    errno = ENOTIMPLEMENTED;
-    return -1;
+    struct kill_specification kill_spec;
+    kill_spec.pid = target;
+    return syscall(5, &kill_spec);
 }
 
 int is_predecessor(int child, int pred)
@@ -75,7 +76,7 @@ int is_predecessor(int child, int pred)
     struct is_predecessor_specification is_pred_spec;
     is_pred_spec.child = child;
     is_pred_spec.pred  = pred;
-    return syscall(6,&is_pred_spec);
+    return syscall(6, &is_pred_spec);
 }
 
 int print_tasks_info(void)

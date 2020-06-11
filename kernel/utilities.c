@@ -19,6 +19,7 @@
  ******************************************************************************/ 
 
 #include "utilities.h"
+#include "scheduler.h"
 
 unsigned int get_operating_mode(void)
 {
@@ -51,4 +52,20 @@ void halt_execution(void)
     if (is_privileged()){
         asm("hlt");
     }
+}
+
+/*
+ * check if calling_process has rights for actions on process target
+ */
+int has_rights(int calling_process, int target)
+{
+    // same process
+    if(calling_process == target){
+        return 1;
+    }
+    // target is child of calling_process
+    if(process_is_descendent_of(target,calling_process)){
+        return 1;
+    }
+    return 0;
 }
