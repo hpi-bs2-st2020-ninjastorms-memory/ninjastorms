@@ -21,7 +21,7 @@
 #include "interrupt.h"
 #include "syscall_handler.h"
 
-#include "kernel/memory.h"
+#include "kernel/hal.h"
 #include "kernel/interrupt_handler.h"
 
 #if BOARD_EV3
@@ -127,4 +127,3 @@ init_interrupt_handling (void)
   init_interrupt_controller();
   enable_irq();
 }
-

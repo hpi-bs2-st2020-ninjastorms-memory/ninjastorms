@@ -20,7 +20,7 @@
 
 .section .text.boot
 
-#include "kernel/memory.h"
+#include "kernel/hal.h"
 
 .globl Start
 Start:
@@ -86,5 +86,3 @@ fini_array_loop_end:
 halt:
 //  wfe
   b     halt
-
-

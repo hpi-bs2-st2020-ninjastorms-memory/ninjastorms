@@ -37,6 +37,7 @@ ninjastorms_SOURCES = \
     kernel/syscall.c kernel/syscall.h \
     kernel/utilities.c kernel/utilities.h \
     kernel/interrupt_handler.S kernel/interrupt_handler.h \
+    kernel/hal.h \
     kernel/memory.h \
     kernel/mmio.c kernel/mmio.h \
     kernel/drivers/adc.c kernel/drivers/adc.h \
