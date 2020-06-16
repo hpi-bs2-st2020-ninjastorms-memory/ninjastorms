@@ -167,6 +167,8 @@ kernel_main (void)
   puts(shuriken);
 
   add_task(&user_mode_init);
+  memory_init();
+
   start_scheduler();
 
   puts("All done. ninjastorms out!");
