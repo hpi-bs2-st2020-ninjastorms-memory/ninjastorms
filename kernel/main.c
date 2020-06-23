@@ -1,4 +1,3 @@
-
 /******************************************************************************
  *       ninjastorms - shuriken operating system                              *
  *                                                                            *
@@ -167,7 +166,7 @@ kernel_main (void)
   puts(shuriken);
 
   add_task(&user_mode_init);
-  memory_init();
+  mem_init();
 
   start_scheduler();
 
