@@ -21,62 +21,136 @@
 
 #include <stdio.h>
 
-// Clearing of entries.
 
-void
-clear_lvl2_entry(mem_lvl2_entry_t* entry)
-{
-  // TODO: Think about what to do with the ap and c/b bits.
-  entry->base_address = 0x0;
-  entry->ap3 = 0;
-  entry->ap2 = 0;
-  entry->ap1 = 0;
-  entry->ap0 = 0;
-  entry->cache_behavior = MEM_LVL2_CACHE_BEHAVIOR_NONCACHEABLE_NONBUFFERABLE;
-  entry->descriptor = MEM_LVL2_DESCRIPTOR_INVALID;
-}
+#define ENTRY_GET(entry, offset, length) \
+    (BITFIELD_GET(UINT32_ENDIANNESS_SWAP(entry), offset, length))
+#define ENTRY_SET(entry, value, offset, length) \
+    ((entry) = UINT32_ENDIANNESS_SWAP( \
+      BITFIELD_MERGE(UINT32_ENDIANNESS_SWAP(entry), value, offset, length)))
 
-void
-clear_lvl1_entry(mem_lvl1_entry_t* entry)
-{
-  entry->base_address = 0x0;
-  entry->const_0 = 0;
-  entry->domain = MEM_DOMAIN_CONTROL_NO_ACCESS;
-  entry->const_1 = 1;
-  entry->const_00 = 0;
-  entry->descriptor = MEM_LVL1_DESCRIPTOR_INVALID;
-}
+// # Level 1 entry
+//
+// Memory layout:
+// | 31        10 | 9 | 8    5 | 4 | 3 2 | 1      0 |
+// | Base address | 0 | Domain | 1 |  00 | Validity |
+
+#define LVL1_ENTRY_DEFAULT 0b00000000000000000000000000010000
+#define LVL1_ENTRY_CLEAR(entry) (entry = UINT32_ENDIANNESS_SWAP(LVL1_ENTRY_DEFAULT))
+
+#define LVL1_ENTRY_GET_BASE_ADDRESS(entry) ENTRY_GET(entry, 10, 22)
+#define LVL1_ENTRY_SET_BASE_ADDRESS(entry, value) ENTRY_SET(entry, value, 10, 22)
+
+#define LVL1_ENTRY_GET_DOMAIN(entry) ENTRY_GET(entry, 5, 4)
+#define LVL1_ENTRY_SET_DOMAIN(entry, value) ENTRY_SET(entry, value, 5, 4)
+
+// ## Domains
+#define LVL1_ENTRY_DOMAIN_SYSTEM 0b0000
+
+// ### Domain control values
+/* Any access generates a domain fault. */
+#define LVL1_ENTRY_DOMAIN_NO_ACCESS 0b00
+/* Accesses are checked against the access permission bits in the section or
+ * page descriptor. */
+#define LVL1_ENTRY_DOMAIN_CLIENT 0b01
+// 0b10 is reserved.
+/* Accesses are not checked against the access permission bits so a permission
+ * fault cannot be generated. */
+#define LVL1_ENTRY_DOMAIN_MANAGER 0b11
+
+#define LVL1_ENTRY_GET_TYPE(entry) ENTRY_GET(entry, 0, 2)
+#define LVL1_ENTRY_SET_TYPE(entry, value) ENTRY_SET(entry, value, 0, 2)
+
+#define LVL1_TYPE_INVALID 0b00
+#define LVL1_TYPE_COARSE_PAGE_TABLE 0b01
+// #define LVL1_TYPE_SECTION 0b10
+// #define LVL1_TYPE_FINE_PAGE_TABLE 0b11
+
+
+// # Level 2 entry
+//
+// Memory layout:
+// | 31        12 | 11 10 | 9 8 | 7 6 | 5 4 | 3 | 2 | 1      0 |
+// | Base address |   AP3 | AP2 | AP1 | AP0 | C | B | Validity |
+
+#define LVL2_ENTRY_DEFAULT 0b00000000000000000000000000000000
+#define LVL2_ENTRY_CLEAR(entry) (entry = UINT32_ENDIANNESS_SWAP(LVL2_ENTRY_DEFAULT))
+
+#define LVL2_ENTRY_GET_BASE_ADDRESS(entry) ENTRY_GET(entry, 12, 20)
+#define LVL2_ENTRY_SET_BASE_ADDRESS(entry, value) ENTRY_SET(entry, value, 12, 20)
+
+#define LVL2_ENTRY_GET_AP3(entry) ENTRY_GET(entry, 10, 2)
+#define LVL2_ENTRY_SET_AP3(entry, value) ENTRY_SET(entry, value, 10, 2)
+#define LVL2_ENTRY_GET_AP2(entry) ENTRY_GET(entry, 8, 2)
+#define LVL2_ENTRY_SET_AP2(entry, value) ENTRY_SET(entry, value, 8, 2)
+#define LVL2_ENTRY_GET_AP1(entry) ENTRY_GET(entry, 6, 2)
+#define LVL2_ENTRY_SET_AP1(entry, value) ENTRY_SET(entry, value, 6, 2)
+#define LVL2_ENTRY_GET_AP0(entry) ENTRY_GET(entry, 4, 2)
+#define LVL2_ENTRY_SET_AP0(entry, value) ENTRY_SET(entry, value, 4, 2)
+
+// ## Access Permissions
+// http://infocenter.arm.com/help/topic/com.arm.doc.ddi0198e/DDI0198E_arm926ejs_r0p5_trm.pdf#page=84&zoom=100,41,652
+#define LVL2_ENTRY_AP_ALL_NO_ACCESS 0b00
+#define LVL2_ENTRY_AP_PRIVILEDGED READ_ONLY_USER_NO_ACCESS 0b10
+#define LVL2_ENTRY_AP_ALL_READ_ONLY 0b01
+#define LVL2_ENTRY_AP_ALL_UNPREDICTABLE 0b11
+
+// TODO: Actually, the Access Permission Bits should be used:
+// 0 0 0 0 No access No access
+// 0 0 1 0 Read-only No access
+// 0 0 0 1 Read-only Read-only
+// 0 0 1 1 Unpredictable Unpredictable
+// 0 1 x x Read/Write No access
+// 1 0 x x Read/Write Read-only
+// 1 1 x x Read/Write Read/Write
+
+#define LVL2_ENTRY_GET_CACHE_BEHAVIOR(entry) ENTRY_GET(entry, 2, 2)
+#define LVL2_ENTRY_SET_CACHE_BEHAVIOR(entry, value) ENTRY_SET(entry, value, 2, 2)
+
+/* DCache disabled. Read from external memory. Write as a nonbuffered store(s)
+ * to external memory. DCache is not updated. */
+#define LVL2_CACHE_BEHAVIOR_NONCACHEABLE_NONBUFFERABLE 0b00
+/* DCache disabled. Read from external memory. Write as a buffered store(s) to
+ * external memory. DCache is not updated. */
+#define LVL2_CACHE_BEHAVIOR_NONCACHEABLE_BUFFERABLE 0b01
+/* DCache enabled:
+ * - Read hit: Read from DCache
+ * - Read miss: Linefill
+ * - Write hit: Write to the DCache, and buffered store to external memory
+ * - Write miss: Buffered store to external memory */
+#define LVL2_CACHE_BEHAVIOR_CACHEABLE_WRITETHROUGH 0b10
+/* DCache enabled:
+ * - Read hit: Read from DCache
+ * - Read miss: Linefill
+ * - Write hit: Write to the DCache only
+ * - Write miss: Buffered store to external memory. */
+#define LVL2_CACHE_BEHAVIOR_CACHEABLE_WRITEBACK 0b11
+
+#define LVL2_ENTRY_GET_TYPE(entry) ENTRY_GET(entry, 0, 2)
+#define LVL2_ENTRY_SET_TYPE(entry, value) ENTRY_SET(entry, value, 0, 2)
+
+/* Generates a page translation fault. */
+#define LVL2_ENTRY_TYPE_INVALID 0b00
+/* 64 KB */
+// #define LVL2_ENTRY_TYPE_LARGE_PAGE 0b01
+/* 4 KB */
+#define LVL2_ENTRY_TYPE_SMALL_PAGE 0b10
+/* 1 KB */
+// #define LVL2_ENTRY_TYPE_TINY_PAGE 0b11
+
+
 
 // Clearing of whole tables.
 
-void
-clear_coarse_table(mem_coarse_table_t* table)
-{
+void clear_coarse_table(mem_coarse_table_t* table) {
   for (int i = 0; i < MEM_NUM_ENTRIES_COARSE_TABLE; i++) {
-    clear_lvl2_entry(&(table->entries[i]));
+    table->entries[i] = LVL1_ENTRY_DEFAULT;
   }
 }
 
-void
-clear_translation_table(mem_translation_table_t* table)
-{
+void clear_translation_table(mem_translation_table_t* table) {
   for (int i = 0; i < MEM_NUM_ENTRIES_TRANSLATION_TABLE; i++) {
-    clear_lvl1_entry(&(table->entries[i]));
+    table->entries[i] = LVL2_ENTRY_DEFAULT;
   }
-}
-
-// Creation of entries.
-
-mem_lvl2_entry_t create_lvl2_entry() {
-  mem_lvl2_entry_t entry;
-  clear_lvl2_entry(&entry);
-  return entry;
-}
-
-mem_lvl1_entry_t create_lvl1_entry() {
-  mem_lvl1_entry_t entry;
-  clear_lvl1_entry(&entry);
-  return entry;
 }
 
 // Adding of entries.
@@ -264,20 +338,15 @@ mem_lvl1_entry_t create_lvl1_entry() {
 mem_translation_table_t mem_kernel_table;
 mem_coarse_table_t all_coarse_tables[NUM_COARSE_TABLES];
 
-void mem_init_kernel_table(void)
-{
+void mem_init_kernel_table(void) {
   printf("The kernel table lives at %x\n", (int) &mem_kernel_table);
   printf("The coarse tables live at %x\n", (int) &all_coarse_tables);
-  // printf("The small tables live at %d", (int) &all_small_tables);
 
   // Clear all tables.
   clear_translation_table(&mem_kernel_table);
   for (int i = 0; i < NUM_COARSE_TABLES; i++) {
     clear_coarse_table(&all_coarse_tables[i]);
   }
-  // for (int i = 0; i < NUM_COARSE_TABLES * MEM_NUM_ENTRIES_COARSE_PT; i++) {
-  //   clear_small_table(&all_small_tables[i]);
-  // }
 
   printf("Level 2 entry size: %i\n", sizeof(all_coarse_tables[0].entries[0]));
   mem_lvl2_entry_t st = all_coarse_tables[0].entries[0];
@@ -297,22 +366,20 @@ void mem_init_kernel_table(void)
   for (int i = 0; i < NUM_COARSE_TABLES; i++) {
     mem_coarse_table_t coarse_table = all_coarse_tables[i];
 
-    mem_lvl1_entry_t lvl1_entry = mem_kernel_table.entries[i];
-    lvl1_entry.base_address = ((uint32_t) &coarse_table) >> 10; // TODO: Create entry.
-    lvl1_entry.descriptor = MEM_LVL1_DESCRIPTOR_COARSE_PAGE_TABLE;
-    lvl1_entry.domain = MEM_DOMAIN_CONTROL_MANAGER;
+    mem_lvl1_entry_t lvl1_entry = LVL1_ENTRY_DEFAULT;
+    LVL1_ENTRY_SET_BASE_ADDRESS(lvl1_entry, ((uint32_t) &coarse_table) >> 10);
+    LVL1_ENTRY_SET_DOMAIN(lvl1_entry, LVL1_ENTRY_DOMAIN_MANAGER);
+    LVL1_ENTRY_SET_TYPE(lvl1_entry, LVL1_TYPE_COARSE_PAGE_TABLE);
 
     for (int j = 0; j < MEM_NUM_ENTRIES_COARSE_TABLE; j++) {
       mem_lvl2_entry_t lvl2_entry = coarse_table.entries[j];
-      lvl2_entry.base_address = i << 8 | j;
-      lvl2_entry.descriptor = MEM_LVL2_DESCRIPTOR_SMALL_PAGE;
+      LVL2_ENTRY_SET_BASE_ADDRESS(lvl2_entry, i << 8 | j);
+      LVL2_ENTRY_SET_TYPE(lvl2_entry, LVL2_ENTRY_TYPE_SMALL_PAGE);
     }
   }
 }
 
-void
-mem_init (void)
-{
+void mem_init (void) {
   printf("Initializing mem…\n");
   mem_init_kernel_table();
 
@@ -373,7 +440,7 @@ mem_init (void)
   // - D00 (used by the kernel): set to 0b11 for "Manager"
   asm (
     "MCR p15, 0, %0, c3, c0, 0\n"
-    : : "r" (MEM_DOMAIN_CONTROL_MANAGER)
+    : : "r" (LVL1_ENTRY_DOMAIN_MANAGER)
   );
 
   // TODO: Initialize Pages for Kernel
