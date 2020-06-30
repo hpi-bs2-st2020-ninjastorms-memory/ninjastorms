@@ -517,7 +517,7 @@ void mem_init (void) {
   mem_init_kernel_table();
   printf("Dumping kernel table…\n");
   printf("\n");
-  dump_translation_table(mem_kernel_table);
+  // dump_translation_table(mem_kernel_table);
   printf("\n");
 
   // // Get the current address of the stack.
@@ -618,4 +618,19 @@ void mem_init (void) {
   printf("The translated answer is 0x%x.\n", answer);
 
   printf("Memory Setup Done.\n");
+}
+
+void mem_debug_interrupt(void) {
+  asm(
+    "MOV r5, #42\n" // write to r5 for debugging purposes
+  );
+
+  printf("Something bad happened.");
+
+  uint32_t fault_address;
+  asm(
+    "MRC p15, 0, %0, c6, c0, 0\n" // read FAR
+    : "=r" (fault_address)
+  );
+  dump_uint32(fault_address);
 }
