@@ -23,9 +23,7 @@ typedef uint8_t bool;
 
 // Endianness
 
-#define UINT32_ENDIANNESS_SWAP(value) \
-    (((value) << 24 & 0xff000000) | ((value) << 8 & 0x00ff0000) \
-      | ((value) >> 8 & 0x0000ff00) | ((value) >> 24 & 0x000000ff))
+#define UINT32_ENDIANNESS_SWAP(value) __builtin_bswap32(value)
 
 
 // Bit & Bit Field operations
