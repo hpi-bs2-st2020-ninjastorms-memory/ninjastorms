@@ -21,10 +21,6 @@ typedef long long int64_t;
 #define true 1
 typedef uint8_t bool;
 
-// Endianness
-
-#define UINT32_ENDIANNESS_SWAP(value) __builtin_bswap32(value)
-
 
 // Bit & Bit Field operations
 
