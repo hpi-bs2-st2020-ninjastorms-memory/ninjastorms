@@ -586,7 +586,7 @@ void mem_interrupt_handler_data_abort() {
   dump_uint32(fault_address);
   dump_uint32(fault_status);
 
-  asm("SUBS PC, R14, #4");
+  asm("SUBS PC, R14, #0");
   // TODO: use #8 when handling data abort
 }
 // https://www.scss.tcd.ie/~waldroj/3d1/arm_arm.pdf#page=58
