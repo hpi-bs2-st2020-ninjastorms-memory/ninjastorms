@@ -87,6 +87,22 @@ setup_irq_stack (void)
   );
 }
 
+void
+setup_abt_stack (void)
+{
+  asm volatile (
+    "mrs  r0, cpsr \n"
+    "bic  r0, #0x1f \n" // Clear mode bits
+    "orr  r0, #0x17 \n" // Select ABT mode
+    "msr  cpsr, r0 \n"  // Enter ABT mode
+    "mov  sp, %[abt_stack_address] \n"    // set stack pointer
+    "bic  r0, #0x1f \n" // Clear mode bits
+    "orr  r0, #0x13 \n" // Select SVC mode
+    "msr  cpsr, r0 \n"  // Enter SVC mode
+    : : [abt_stack_address] "r" (ABT_STACK_BASE_ADDRESS)
+  );
+}
+
 void init_timer_interrupt(void)
 {
     #if BOARD_VERSATILEPB
@@ -130,6 +146,7 @@ init_interrupt_handling (void)
 {
   setup_ivt();
   setup_irq_stack();
+  setup_abt_stack();
   init_interrupt_controller();
   enable_irq();
 }

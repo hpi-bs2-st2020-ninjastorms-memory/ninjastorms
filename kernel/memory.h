@@ -55,6 +55,8 @@ typedef struct mem_coarse_table_t {
 
 void mem_init(void);
 
+void mem_test_data_abort(void);
+
 void mem_debug_interrupt(void);
 
 void mem_interrupt_handler_data_abort(void);
