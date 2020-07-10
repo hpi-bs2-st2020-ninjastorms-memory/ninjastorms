@@ -25,6 +25,8 @@
 #include "kernel/interrupt_handler.h"
 #include "kernel/memory.h"
 
+#include <stdio.h>
+
 #if BOARD_EV3
 #  define IVT_OFFSET (unsigned int) 0xFFFF0000
 #endif
@@ -37,6 +39,9 @@
 void
 setup_ivt (void)
 {
+  printf("data abort handler: 0x%x\n", &interrupt_handler_data_abort);
+  printf("mem data abort handler: 0x%x\n", &mem_interrupt_handler_data_abort);
+
   *(unsigned int*) (IVT_OFFSET + 0x00) = 0;           //TODO: reset
   *(unsigned int*) (IVT_OFFSET + 0x04) = 0xe59ff014;  //ldr pc, [pc, #20] ; 0x20 undefined instruction
   *(unsigned int*) (IVT_OFFSET + 0x08) = 0xe59ff014;  //ldr pc, [pc, #20] ; 0x24 software interrupt
@@ -49,8 +54,8 @@ setup_ivt (void)
   *(unsigned int*) (IVT_OFFSET + 0x20) = (unsigned int) 0;
   //ATTENTION: don't use software interrupts in supervisor mode
   *(unsigned int*) (IVT_OFFSET + 0x24) = (unsigned int) &syscall_handler;
-  *(unsigned int*) (IVT_OFFSET + 0x28) = (unsigned int) 0;
-  *(unsigned int*) (IVT_OFFSET + 0x2c) = (unsigned int) 0;
+  *(unsigned int*) (IVT_OFFSET + 0x28) = (unsigned int) &interrupt_handler_data_abort;
+  *(unsigned int*) (IVT_OFFSET + 0x2c) = (unsigned int) &interrupt_handler_data_abort;
   *(unsigned int*) (IVT_OFFSET + 0x30) = (unsigned int) 0;
   *(unsigned int*) (IVT_OFFSET + 0x34) = (unsigned int) &irq_handler_timer;
   *(unsigned int*) (IVT_OFFSET + 0x38) = (unsigned int) 0;

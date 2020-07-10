@@ -35,7 +35,12 @@
 #define LVL1_ENTRY_DEFAULT 0b00000000000000000000000000010000
 
 #define LVL1_ENTRY_GET_BASE_ADDRESS(entry) ENTRY_GET(entry, 10, 22)
-#define LVL1_ENTRY_SET_BASE_ADDRESS(entry, value) ENTRY_SET(entry, value, 10, 22)
+#define LVL1_ENTRY_GET_COARSE_TABLE(entry) \
+    ((mem_coarse_table_t*) (LVL1_ENTRY_GET_BASE_ADDRESS(entry) << 10))
+#define LVL1_ENTRY_SET_BASE_ADDRESS(entry, value) \
+    ENTRY_SET(entry, value, 10, 22)
+#define LVL1_ENTRY_SET_COARSE_TABLE(entry, value) \
+    LVL1_ENTRY_SET_BASE_ADDRESS(entry, ((uint32_t) (value)) >> 10)
 
 #define LVL1_ENTRY_GET_DOMAIN(entry) ENTRY_GET(entry, 5, 4)
 #define LVL1_ENTRY_SET_DOMAIN(entry, value) ENTRY_SET(entry, value, 5, 4)
@@ -72,7 +77,12 @@
 #define LVL2_ENTRY_DEFAULT 0b00000000000000000000000000000000
 
 #define LVL2_ENTRY_GET_BASE_ADDRESS(entry) ENTRY_GET(entry, 12, 20)
-#define LVL2_ENTRY_SET_BASE_ADDRESS(entry, value) ENTRY_SET(entry, value, 12, 20)
+#define LVL2_ENTRY_GET_BASE_POINTER(entry) \
+    ((void*) LVL2_ENTRY_GET_BASE_ADDRESS(entry) << 12)
+#define LVL2_ENTRY_SET_BASE_ADDRESS(entry, value) \
+    ENTRY_SET(entry, value, 12, 20)
+#define LVL2_ENTRY_SET_BASE_POINTER(entry, value) \
+    LVL2_ENTRY_SET_BASE_ADDRESS(entry, ((uint32_t) (value)) >> 12)
 
 #define LVL2_ENTRY_GET_AP3(entry) ENTRY_GET(entry, 10, 2)
 #define LVL2_ENTRY_SET_AP3(entry, value) ENTRY_SET(entry, value, 10, 2)
@@ -129,11 +139,11 @@
 // Generates a page translation fault.
 #define LVL2_ENTRY_TYPE_INVALID 0b00
 // 64 KB
-// #define LVL2_ENTRY_TYPE_LARGE_PAGE 0b01
+#define LVL2_ENTRY_TYPE_LARGE_PAGE 0b01
 // 4 KB
 #define LVL2_ENTRY_TYPE_SMALL_PAGE 0b10
 // 1 KB
-// #define LVL2_ENTRY_TYPE_TINY_PAGE 0b11
+#define LVL2_ENTRY_TYPE_TINY_PAGE 0b11
 
 
 
@@ -166,13 +176,13 @@ void dump_bin_uint32(uint32_t value) {
 
 // Clearing of whole tables.
 
-void clear_coarse_table(mem_coarse_table_t* table) {
+void mem_clear_coarse_table(mem_coarse_table_t* table) {
   for (int i = 0; i < MEM_NUM_ENTRIES_COARSE_TABLE; i++) {
     table->entries[i] = LVL2_ENTRY_DEFAULT;
   }
 }
 
-void clear_translation_table(mem_translation_table_t* table) {
+void mem_clear_translation_table(mem_translation_table_t* table) {
   for (int i = 0; i < MEM_NUM_ENTRIES_TRANSLATION_TABLE; i++) {
     table->entries[i] = LVL1_ENTRY_DEFAULT;
   }
@@ -364,32 +374,33 @@ mem_coarse_table_t *all_coarse_tables = (mem_coarse_table_t*) 0x4004000;
 
 void mem_init_kernel_table(void) {
   // Clear all tables.
-  clear_translation_table(mem_kernel_table);
-  for (int i = 0; i < NUM_COARSE_TABLES; i++) {
-    clear_coarse_table(&all_coarse_tables[i]);
+  mem_clear_translation_table(mem_kernel_table);
+  for (uint16_t i = 0; i < NUM_COARSE_TABLES; i++) {
+    mem_clear_coarse_table(&all_coarse_tables[i]);
   }
 
   mem_lvl1_entry_t lvl1_entry = mem_kernel_table->entries[0];
-  for (int i = 0; i < NUM_COARSE_TABLES; i++) {
+  for (uint16_t i = 0; i < NUM_COARSE_TABLES; i++) {
     mem_coarse_table_t *coarse_table = all_coarse_tables + i;
 
-    uint32_t address = (uint32_t) coarse_table;
     mem_lvl1_entry_t lvl1_entry = mem_kernel_table->entries[i];
-
-    LVL1_ENTRY_SET_BASE_ADDRESS(lvl1_entry, ((uint32_t) coarse_table) >> 10);
+    LVL1_ENTRY_SET_COARSE_TABLE(lvl1_entry, coarse_table);
     LVL1_ENTRY_SET_DOMAIN(lvl1_entry, LVL1_ENTRY_DOMAIN_SYSTEM);
     LVL1_ENTRY_SET_TYPE(lvl1_entry, LVL1_ENTRY_TYPE_COARSE_PAGE_TABLE);
-
     mem_kernel_table->entries[i] = lvl1_entry;
 
-    for (int j = 0; j < MEM_NUM_ENTRIES_COARSE_TABLE; j++) {
+    for (uint16_t j = 0; j < MEM_NUM_ENTRIES_COARSE_TABLE; j++) {
       mem_lvl2_entry_t lvl2_entry = coarse_table->entries[j];
-      LVL2_ENTRY_SET_BASE_ADDRESS(lvl2_entry, i << 8 | j);
+      LVL2_ENTRY_SET_BASE_POINTER(lvl2_entry, (i << 8 | j) << 12);
       LVL2_ENTRY_SET_AP3(lvl2_entry, LVL2_ENTRY_AP_RW_RW);
       LVL2_ENTRY_SET_AP2(lvl2_entry, LVL2_ENTRY_AP_RW_RW);
       LVL2_ENTRY_SET_AP1(lvl2_entry, LVL2_ENTRY_AP_RW_RW);
       LVL2_ENTRY_SET_AP0(lvl2_entry, LVL2_ENTRY_AP_RW_RW);
-      LVL2_ENTRY_SET_TYPE(lvl2_entry, LVL2_ENTRY_TYPE_SMALL_PAGE);
+      if (i == 0b101010101010 && j == 0b10101010) {
+        LVL2_ENTRY_SET_TYPE(lvl2_entry, LVL2_ENTRY_TYPE_INVALID);
+      } else {
+        LVL2_ENTRY_SET_TYPE(lvl2_entry, LVL2_ENTRY_TYPE_SMALL_PAGE);
+      }
       coarse_table->entries[j] = lvl2_entry;
     }
   }
@@ -553,3 +564,29 @@ void mem_init (void) {
   // instructions getting broken.
   printf("Memory Setup Done.\n");
 }
+
+void mem_test_data_abort(void) {
+  uint8_t* forbiddenAddress = (uint8_t*) 0b10101010101010101010101010101010;
+  printf("Accessing the forbidden byte…\n");
+  uint8_t forbiddenByte = *forbiddenAddress;
+  printf("Forbidden byte: %i\n", forbiddenByte);
+}
+
+void mem_interrupt_handler_data_abort() {
+  printf("Handling data abort.");
+
+  // Read Fault Status Register
+  uint32_t fault_address;
+  uint32_t fault_status;
+  asm(
+    "MRC p15, 0, %0, c6, c0, 0\n" // read FAR
+    "MCR p15, 0, %1, c5, c0, 0\n" // read FSR
+    : "=r" (fault_address), "=r" (fault_status)
+  );
+  dump_uint32(fault_address);
+  dump_uint32(fault_status);
+
+  asm("SUBS PC, R14, #4");
+  // TODO: use #8 when handling data abort
+}
+// https://www.scss.tcd.ie/~waldroj/3d1/arm_arm.pdf#page=58

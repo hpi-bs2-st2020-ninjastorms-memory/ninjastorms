@@ -23,14 +23,26 @@
 .section .text
 
 // import
+.globl mem_interrupt_handler_data_abort
 .globl schedule
 
 // export
+.globl interrupt_handler_data_abort
 .globl irq_handler_swi
 .globl irq_handler_timer
 .type irq_handler STT_FUNC
 .globl load_current_task_state
 .type load_current_task_state STT_FUNC
+
+
+interrupt_handler_data_abort:
+  sub lr, lr, #4
+  push {r0-r12, lr}
+
+  bl mem_interrupt_handler_data_abort
+
+  pop {r0-r12, pc}
+  //subs pc, lr, #8
 
 
 irq_handler_timer:
@@ -62,7 +74,7 @@ irq_handler_timer:
   pop  {r0-r2, lr}
 
   b  load_current_task_state
-  
+
 
 // the first parameter (r0) of save_current_task_state
 // contains the address to the saved registers
