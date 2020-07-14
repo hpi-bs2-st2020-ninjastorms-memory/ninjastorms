@@ -36,9 +36,7 @@
 #endif
 
 // builds the interrupt vector table
-void
-setup_ivt (void)
-{
+void setup_ivt (void) {
   printf("data abort handler: 0x%x\n", &interrupt_handler_data_abort);
   printf("mem data abort handler: 0x%x\n", &mem_interrupt_handler_data_abort);
 
@@ -71,40 +69,31 @@ setup_ivt (void)
 #endif
 }
 
-void
-setup_irq_stack (void)
-{
+void setup_stack(uint8_t mode, uint32_t stack_base_address) {
   asm volatile (
     "mrs  r0, cpsr \n"
-    "bic  r0, #0x1f \n" // Clear mode bits
-    "orr  r0, #0x12 \n" // Select IRQ mode
-    "msr  cpsr, r0 \n"  // Enter IRQ mode
-    "mov  sp, %[irq_stack_address] \n"    // set stack pointer
-    "bic  r0, #0x1f \n" // Clear mode bits
-    "orr  r0, #0x13 \n" // Select SVC mode
-    "msr  cpsr, r0 \n"  // Enter SVC mode
-    : : [irq_stack_address] "r" (IRQ_STACK_ADDRESS)
-  );
-}
-
-void
-setup_abt_stack (void)
-{
-  asm volatile (
-    "mrs  r0, cpsr \n"
-    "bic  r0, #0x1f \n" // Clear mode bits
-    "orr  r0, #0x17 \n" // Select ABT mode
-    "msr  cpsr, r0 \n"  // Enter ABT mode
+    "bic  r0, #0x1f \n"   // Clear mode bits
+    "orr  r0, %[mode] \n" // Select correct mode
+    "msr  cpsr, r0 \n"    // Enter correct mode
     "mov  sp, %[abt_stack_address] \n"    // set stack pointer
-    "bic  r0, #0x1f \n" // Clear mode bits
-    "orr  r0, #0x13 \n" // Select SVC mode
-    "msr  cpsr, r0 \n"  // Enter SVC mode
-    : : [abt_stack_address] "r" (ABT_STACK_BASE_ADDRESS)
+    "bic  r0, #0x1f \n"   // Clear mode bits
+    "orr  r0, #0x13 \n"   // Select SVC mode
+    "msr  cpsr, r0 \n"    // Enter SVC mode
+    : : [mode] "r" (mode),
+      [abt_stack_address] "r" (ABT_STACK_BASE_ADDRESS)
   );
 }
 
-void init_timer_interrupt(void)
-{
+void setup_irq_stack(void) {
+  setup_stack(0x12, IRQ_STACK_ADDRESS);
+}
+
+void setup_abt_stack(void) {
+  setup_stack(0x17, ABT_STACK_BASE_ADDRESS);
+}
+
+
+void init_timer_interrupt(void) {
     #if BOARD_VERSATILEPB
     *PIC_INTENABLE |= TIMER1_INTBIT;  // unmask interrupt bit for timer1  
     #endif
