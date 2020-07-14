@@ -145,6 +145,11 @@
 // 1 KB
 #define LVL2_ENTRY_TYPE_TINY_PAGE 0b11
 
+// Fault status codes that can be reported by the MMU in the Fault Status
+// Register (FSR).
+//
+// https://developer.arm.com/documentation/ddi0198/e/memory-management-unit/mmu-faults-and-cpu-aborts/fault-address-and-fault-status-registers?lang=en
+#define MMU_FAULT_STATUS_TRANSLATION_PAGE 0b0111
 
 
 void dump_uint32(uint32_t value) {
@@ -188,206 +193,125 @@ void mem_clear_translation_table(mem_translation_table_t* table) {
   }
 }
 
+// Creation of tables.
+
+mem_coarse_table_t* mem_create_coarse_table() {
+  // TODO
+}
+
 // Adding of entries.
-// 
-// bool add_translation_table_entry_to_translation_table(mem_translation_table_t* translation_table, mem_translation_table_entry_t* entry)
-// {
-//   // Find an empty slot (with invalid descriptor bits).
-//   for (int i = 0; i < MEM_NUM_ENTRIES_TRANSLATION_T; i++) {
-//     mem_translation_table_entry_t table_entry = translation_table->entries[i];
 
-//     if (table_entry.descriptor == MEM_TRANSLATION_DESCRIPTOR_INVALID) {
-//       // Insert the new table here.
-//       table_entry = *entry;
-//       return true;
-//     }
-//   }
-//   return false;
-// }
+// Adds a new level 2 [entry] to the existing coarse [table].
+//
+// The [address_in_page] should be an address in the page that is to be added.
+// | 12 bits | 8 bits | 12 bits |
+void mem_add_lvl2_entry_to_coarse_table(
+  mem_coarse_table_t* table,
+  void* address_in_page,
+  mem_lvl2_entry_t entry
+) {
+  printf("Adding a lvl2 entry to the coarse table for address 0x%x.\n",
+      address_in_page);
+  uint32_t index = (uint32_t) address_in_page >> 12 & 0xFF;
 
-// bool add_coarse_pte_to_coarse_pt(mem_coarse_pt_t* coarse_table, mem_coarse_pte_t* entry)
-// {
-//   // Find an empty slot (with invalid descriptor bits).
-//   for (int i = 0; i < MEM_NUM_ENTRIES_COARSE_PT; i++) {
-//     mem_coarse_pte_t table_entry = coarse_table->entries[i];
+  if (LVL2_ENTRY_GET_TYPE(table->entries[index]) != LVL2_ENTRY_TYPE_INVALID) {
+    printf("Fatal: There's already an entry for page base address 0x%x in the "
+      "coarse page table. This indicates that the table is not setup "
+      "correctly, because we shouldn't need to virtualize the same address "
+      "twice.\n",
+      address_in_page);
+    return;
+  }
 
-//     if (table_entry.descriptor == MEM_COARSE_DESCRIPTOR_INVALID) {
-//       // Insert the new table here.
-//       table_entry = *entry;
-//       return true;
-//     }
-//   }
-//   return false;
-// }
+  table->entries[index] = entry;
+}
 
-// bool add_coarse_pte_to_translation_table(mem_translation_table_t* translation_table, mem_coarse_pte_t* entry)
-// {
-//   // Try adding the entry to an existing coarse pt.
-//   for (int i = 0; i < MEM_NUM_ENTRIES_TRANSLATION_T; i++) {
-//     mem_translation_table_entry_t table_entry = translation_table->entries[i];
-//     if (table_entry.descriptor == MEM_TRANSLATION_DESCRIPTOR_INVALID) {
-//       continue;
-//     }
+// Adds a new level 1 [entry] to the existing translation [table].
+//
+// The [address_in_page] should be an address in the page that is to be added.
+// | 12 bits | 8 bits | 12 bits |
+void mem_add_lvl1_entry_to_translation_table(
+  mem_translation_table_t* table,
+  void* address_in_page,
+  mem_lvl1_entry_t entry
+) {
+  printf("Adding a lvl1 entry to the translation table for address 0x%x.\n",
+      address_in_page);
+  uint32_t index = (uint32_t) address_in_page >> 20;
 
-//     bool result = add_coarse_pte_to_coarse_pt((mem_coarse_pt_t*)(table_entry.base_address << 14), entry);
-//     if (result) {
-//       return true;
-//     }
-//   }
+  if (LVL1_ENTRY_GET_TYPE(table->entries[index]) == LVL1_ENTRY_TYPE_INVALID) {
+    printf("Fatal: There's already an entry for page base address 0x%x in the "
+      "translation table.\n"
+      "This indicates that the table is not setup correctly, because we "
+      "shouldn't need to virtualize the same address twice.\n",
+      address_in_page);
+    return;
+  }
 
-//   // Otherwise, try to create a new coarse pte.
-//   mem_translation_table_entry_t table_entry = create_translation_table_entry();
-//   if (!add_coarse_pte_to_coarse_pt(&table_entry, entry)) {
-//     return false;
-//   }
+  table->entries[index] = entry;
+}
 
-//   mem_coarse_pt_t coarse_table;
-//   coarse_entry.base_address = ((uint32_t) &coarse_table) >> 14;
-//   return true;
+void mem_add_lvl2_entry_to_translation_table(
+  mem_translation_table_t* table,
+  void* address_in_page,
+  mem_lvl2_entry_t entry
+) {
+  printf("Adding a lvl2 entry to the translation table for address 0x%x.\n",
+      address_in_page);
+  uint32_t index = (uint32_t) address_in_page >> 20;
+  mem_lvl1_entry_t table_entry = table->entries[index];
 
-//   // // Find an empty slot (with invalid descriptor bits).
-//   // for (int i = 0; i < MEM_NUM_ENTRIES_TRANSLATION_T; i++) {
-//   //   mem_translation_table_entry_t *table_entry = &(translation_table->entries[i]);
+  // If a translation table already exists for this entry, add it to the
+  // corresponding coarse table.
+  if (LVL1_ENTRY_GET_TYPE(table_entry) != LVL1_ENTRY_TYPE_INVALID) {
+    mem_coarse_table_t* coarse_table = LVL1_ENTRY_GET_COARSE_TABLE(table_entry);
+    mem_add_lvl2_entry_to_coarse_table(coarse_table, address_in_page, entry);
+    return;
+  }
 
-//   //   if (table_entry->descriptor == MEM_COARSE_DESCRIPTOR_INVALID) {
-//   //     // Insert the new table here.
-//   //     *table_entry = *entry;
-//   //     return true;
-//   //   }
-//   // }
-//   // return false;
-// }
-
-// bool add_small_pte_to_translation_table(mem_translation_table_t* translation_table, mem_small_pte_t entry)
-// {
-//   // Try adding the entry to an existing small pt.
-//   for (int i = 0; i < MEM_NUM_ENTRIES_TRANSLATION_T; i++) {
-//     mem_translation_table_entry_t table_entry = translation_table->entries[i];
-//     if (table_entry.descriptor == MEM_TRANSLATION_DESCRIPTOR_INVALID) {
-//       continue;
-//     }
-
-//     bool result = add_small_pte_to_coarse_pt((mem_coarse_pt_t*)(table_entry.base_address << 10), entry);
-//     if (result) {
-//       return true;
-//     }
-//   }
-
-//   // Otherwise, try to create a new translation table entry.
-//   mem_translation_table_entry_t *translation_entry;
-//   if (!add_translation_entry_to_translation_table(translation_entry)) {
-//     return false;
-//   }
+  // Create a new coarse table and create an entry in the translation table that
+  // points to it.
+  mem_coarse_table_t* coarse_table = mem_create_coarse_table();
+  mem_add_lvl2_entry_to_coarse_table(coarse_table, address_in_page, entry);
   
-//   mem_coarse_pt_t coarse_table;
-//   translation_entry->base_address = ((uint32_t) &coarse_table) >> 10;
-
-//   mem_small_pt_t small_table;
-//   coarse_entry->base_address = ((uint32_t) &small_table) >> 10;
-//   return true;
-// }
-
-
-
-// /* Adds a new entry to the given small page table.
-//  * Returns if the the new entry was successfully inserted.
-//  */
-// bool add_small_pte_to_small_pt(mem_small_pt_t* small_table, mem_small_pte_t* entry)
-// {
-//   // Find an empty slot (with invalid descriptor bits).
-//   for (int i = 0; i < MEM_NUM_ENTRIES_SMALL_PT; i++) {
-//     mem_small_pte_t table_entry = small_table->entries[i];
-
-//     if (table_entry.descriptor == MEM_SMALL_DESCRIPTOR_INVALID) {
-//       // Insert the new table here.
-//       table_entry = *entry;
-//       return true;
-//     }
-//   }
-//   return false;
-// }
-
-// bool add_small_pte_to_coarse_pt(mem_coarse_pt_t* coarse_table, mem_small_pte_t* entry)
-// {
-//   // Try adding the entry to an existing small pt.
-//   for (int i = 0; i < MEM_NUM_ENTRIES_COARSE_PT; i++) {
-//     mem_coarse_pte_t table_entry = coarse_table->entries[i];
-//     if (table_entry.descriptor == MEM_COARSE_DESCRIPTOR_INVALID) {
-//       continue;
-//     }
-
-//     bool result = add_small_pte_to_small_pt((mem_small_pt_t*)(table_entry.base_address << 10), entry);
-//     if (result) {
-//       return true;
-//     }
-//   }
-
-//   // Otherwise, try to create a new coarse pte.
-//   mem_coarse_pte_t coarse_entry = create_coarse_pte();
-//   if (!add_coarse_pte_to_coarse_pt(&coarse_entry, entry)) {
-//     return false;
-//   }
-
-//   mem_small_pt_t small_table;
-//   coarse_entry.base_address = ((uint32_t) &small_table) >> 10;
-//   return true;
-// }
-
-
-// void add_translation_entry(translation_table_t* translation_table)
-// {
-//   translation_table_entry_t* translation_entry;
-
-//   mem_coarse_pt_t *coarse_table = (mem_coarse_pt_t *) 0x12345678;
-
-//   translation_entry.base_address = coarse_table;
-//   translation_entry.const_0 = 0;
-//   translation_entry.domain = 0; //TODO: proper Domain here!
-//   translation_entry.const_1 = 1; //0b1
-//   translation_entry.const_00 = 0; //0b00
-//   translation_entry.descriptor = 1; //0b01
-
-  
-//   // TODO: add entry to table
-// }
-
-// /* Creates a new Small-Page-Table on Demand */
-// void add_coarse_pte(mem_coarse_pt_t* coarse_table)
-// {
-//   mem_coarse_pte_t* coarse_entry;
-
-//   mem_small_pt_t *page_table = ()
-
-//   coarse_entry.base_address = page_table.
-//   coarse_entry.domain =
-//   coarse_entry.const_1 = 1; // 0b1
-//   coarse_entry.descriptor = 1; //0b01
-
-//   // TODO: add entry to table
-// }
+  LVL1_ENTRY_SET_COARSE_TABLE(table_entry, coarse_table);
+  LVL1_ENTRY_SET_DOMAIN(table_entry, LVL1_ENTRY_DOMAIN_SYSTEM);
+  LVL1_ENTRY_SET_TYPE(table_entry, LVL1_ENTRY_TYPE_COARSE_PAGE_TABLE);
+  mem_add_lvl1_entry_to_translation_table(table, address_in_page, table_entry);
+}
 
 
 // The kernel page table.
 #define NUM_COARSE_TABLES MEM_NUM_ENTRIES_TRANSLATION_TABLE
-mem_translation_table_t *mem_kernel_table = (mem_translation_table_t*) 0x4000000;
-mem_coarse_table_t *all_coarse_tables = (mem_coarse_table_t*) 0x4004000;
+
+__attribute((__section__("kernel_page_table")))
+mem_translation_table_t mem_kernel_table;
+
+__attribute((__section__("all_coarse_page_tables")))
+mem_coarse_table_t all_coarse_tables[NUM_COARSE_TABLES];
+
+const void* _start_kernel_page_table;
+const void* _start_all_coarse_page_table;
 
 void mem_init_kernel_table(void) {
+  printf("_start_kernel_page_table: 0x%x\n", &mem_kernel_table);
+  printf("_start_all_coarse_page_table: 0x%x\n", &all_coarse_tables);
+
   // Clear all tables.
-  mem_clear_translation_table(mem_kernel_table);
+  mem_clear_translation_table(&mem_kernel_table);
   for (uint16_t i = 0; i < NUM_COARSE_TABLES; i++) {
     mem_clear_coarse_table(&all_coarse_tables[i]);
   }
 
-  mem_lvl1_entry_t lvl1_entry = mem_kernel_table->entries[0];
+  mem_lvl1_entry_t lvl1_entry = mem_kernel_table.entries[0];
   for (uint16_t i = 0; i < NUM_COARSE_TABLES; i++) {
-    mem_coarse_table_t *coarse_table = all_coarse_tables + i;
+    mem_coarse_table_t *coarse_table = &all_coarse_tables[i];
 
-    mem_lvl1_entry_t lvl1_entry = mem_kernel_table->entries[i];
+    mem_lvl1_entry_t lvl1_entry = mem_kernel_table.entries[i];
     LVL1_ENTRY_SET_COARSE_TABLE(lvl1_entry, coarse_table);
     LVL1_ENTRY_SET_DOMAIN(lvl1_entry, LVL1_ENTRY_DOMAIN_SYSTEM);
     LVL1_ENTRY_SET_TYPE(lvl1_entry, LVL1_ENTRY_TYPE_COARSE_PAGE_TABLE);
-    mem_kernel_table->entries[i] = lvl1_entry;
+    mem_kernel_table.entries[i] = lvl1_entry;
 
     for (uint16_t j = 0; j < MEM_NUM_ENTRIES_COARSE_TABLE; j++) {
       mem_lvl2_entry_t lvl2_entry = coarse_table->entries[j];
@@ -414,82 +338,6 @@ void dump_memory_uint32(uint32_t* buffer) {
     dump_bin_uint32(value);
     printf("\n");
   }
-
-  // for (int i = 0; i < MEM_NUM_ENTRIES_TRANSLATION_TABLE; i++) {
-  //   mem_lvl1_entry_t entry = table->entries[i];
-  //   switch (LVL1_ENTRY_GET_TYPE(entry)) {
-  //     case LVL1_ENTRY_TYPE_INVALID: {
-  //       int number_of_invalid = 1;
-  //       while (i < MEM_NUM_ENTRIES_TRANSLATION_TABLE - 1
-  //            && LVL1_ENTRY_GET_TYPE(table->entries[i + 1]) == LVL1_ENTRY_TYPE_INVALID) {
-  //         i++;
-  //         number_of_invalid++;
-  //       }
-  //       printf("- %i invalid entries\n", number_of_invalid);
-  //       printf("  the first one:\n");
-  //       for (int count = 0; count < 1; count++) {
-  //         printf("  ");
-  //         dump_uint32(table->entries[count]);
-  //         printf(" or ");
-  //         dump_bin_uint32(table->entries[count]);
-  //         printf("\n");
-  //       }
-  //       break;
-  //     }
-
-  //     case LVL1_ENTRY_TYPE_COARSE_PAGE_TABLE: {
-  //       printf("- coarse table\n");
-  //       printf("  domain: %i\n", LVL1_ENTRY_GET_DOMAIN(entry));
-
-  //       mem_coarse_table_t coarse_table = *((mem_coarse_table_t*) (LVL1_ENTRY_GET_BASE_ADDRESS(entry) << 10));
-  //       for (int j = 0; j < MEM_NUM_ENTRIES_COARSE_TABLE; j++) {
-  //         mem_lvl2_entry_t inner_entry = coarse_table.entries[j];
-  //         switch (LVL2_ENTRY_GET_TYPE(inner_entry)) {
-  //           case LVL2_ENTRY_TYPE_INVALID: {
-  //             int number_of_invalid = 1;
-  //             while (j < MEM_NUM_ENTRIES_COARSE_TABLE - 1
-  //                 && LVL2_ENTRY_GET_TYPE(coarse_table.entries[j + 1]) == LVL2_ENTRY_TYPE_INVALID) {
-  //               j++;
-  //               number_of_invalid++;
-  //             }
-  //             printf("  - %i invalid lvl2 entries\n", number_of_invalid);
-  //             printf("    first two:\n");
-  //             for (int count = 0; count < 2; count++) {
-  //               printf("    ");
-  //               dump_uint32(coarse_table.entries[count]);
-  //               printf(" or ");
-  //               dump_bin_uint32(coarse_table.entries[count]);
-  //               printf("\n");
-  //             }
-  //             break;
-  //           }
-  //           case LVL2_ENTRY_TYPE_SMALL_PAGE: {
-  //             int start = LVL2_ENTRY_GET_BASE_ADDRESS(inner_entry);
-  //             int number_of_small_pages = 1;
-  //             while (j < MEM_NUM_ENTRIES_COARSE_TABLE - 1
-  //                 && LVL2_ENTRY_GET_TYPE(coarse_table.entries[j + 1]) == LVL2_ENTRY_TYPE_SMALL_PAGE) {
-  //               j++;
-  //               number_of_small_pages++;
-  //             }
-  //             printf("  - %i small pages\n", number_of_small_pages);
-  //             int end = LVL2_ENTRY_GET_BASE_ADDRESS(coarse_table.entries[j]);
-  //             printf("    base addresses from 0x%x up to 0x%x, inclusive (not necessarily contiguous)\n", start, end);
-  //             printf("    the first three:\n");
-  //             for (int count = 0; count < 3; count++) {
-  //               printf("    ");
-  //               dump_uint32(coarse_table.entries[count]);
-  //               printf(" or ");
-  //               dump_bin_uint32(coarse_table.entries[count]);
-  //               printf("\n");
-  //             }
-  //             break;
-  //           }
-  //         }
-  //       }
-  //       break;
-  //     }
-  //   }
-  // }
 }
 
 void dump_memory_uint8(uint8_t* buffer) {
@@ -505,7 +353,7 @@ void dump_memory_uint8(uint8_t* buffer) {
   }
 }
 
-void mem_init (void) {
+void mem_init(void) {
   printf("Initializing memory…\n");
   mem_init_kernel_table();
   // printf("Dumping kernel table…\n");
@@ -523,7 +371,7 @@ void mem_init (void) {
   // http://infocenter.arm.com/help/topic/com.arm.doc.ddi0198e/DDI0198E_arm926ejs_r0p5_trm.pdf#page=92
   asm (
     "MCR p15, 0, %0, c2, c0, 0\n" // write TTBR
-    : : "r" (mem_kernel_table)
+    : : "r" (&mem_kernel_table)
   );
 
   // Configure the Domain Access Control Register (c3).
@@ -570,21 +418,42 @@ void mem_test_data_abort(void) {
   printf("Accessing the forbidden byte…\n");
   uint8_t forbiddenByte = *forbiddenAddress;
   printf("Forbidden byte: %i\n", forbiddenByte);
+  printf("Accessing the forbidden byte again…\n");
+  forbiddenByte = *forbiddenAddress;
 }
 
-void mem_interrupt_handler_data_abort() {
-  printf("Handling data abort.");
+void mem_interrupt_handler_data_abort(void) {
+  printf("Handling data abort…\n");
 
-  // Read Fault Status Register
-  uint32_t fault_address;
+  // Read Fault Status Register.
   uint32_t fault_status;
+  uint32_t fault_address;
   asm(
-    "MRC p15, 0, %0, c6, c0, 0\n" // read FAR
-    "MCR p15, 0, %1, c5, c0, 0\n" // read FSR
-    : "=r" (fault_address), "=r" (fault_status)
+    "MRC p15, 0, %0, c5, c0, 0\n" // read FSR
+    "MRC p15, 0, %1, c6, c0, 0\n" // read FAR
+    : "=r" (fault_status),
+      "=r" (fault_address)
   );
-  dump_uint32(fault_address);
-  dump_uint32(fault_status);
+  // dump_uint32(fault_address);
+  // printf("\n");
+  // dump_uint32(fault_status);
+  // printf("\n");
+
+  if (fault_status == MMU_FAULT_STATUS_TRANSLATION_PAGE) {
+    mem_lvl2_entry_t entry = LVL2_ENTRY_DEFAULT;
+    LVL2_ENTRY_SET_BASE_POINTER(entry, fault_address);
+    LVL2_ENTRY_SET_AP3(entry, LVL2_ENTRY_AP_RW_RW);
+    LVL2_ENTRY_SET_AP2(entry, LVL2_ENTRY_AP_RW_RW);
+    LVL2_ENTRY_SET_AP1(entry, LVL2_ENTRY_AP_RW_RW);
+    LVL2_ENTRY_SET_AP0(entry, LVL2_ENTRY_AP_RW_RW);
+    LVL2_ENTRY_SET_TYPE(entry, LVL2_ENTRY_TYPE_SMALL_PAGE);
+
+    mem_add_lvl2_entry_to_translation_table(&mem_kernel_table,
+        (void*) fault_address, entry);
+  } else {
+    printf("Fatal: Unknown MMU fault status code: 0x%x\n", fault_status);
+    return;
+  }
 
   asm("SUBS PC, R14, #0");
   // TODO: use #8 when handling data abort
