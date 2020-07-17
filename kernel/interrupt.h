@@ -24,5 +24,13 @@
 #  include <config.h>
 #endif
 
-void init_interrupt_handling(void);
 
+#if BOARD_EV3
+#  define IVT_OFFSET (unsigned int) 0xFFFF0000
+#endif
+
+#if BOARD_VERSATILEPB
+#  define IVT_OFFSET (unsigned int) 0x0
+#endif
+
+void init_interrupt_handling(void);

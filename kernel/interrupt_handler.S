@@ -27,6 +27,7 @@
 .globl schedule
 
 // export
+.globl interrupt_handler_prefetch_abort
 .globl interrupt_handler_data_abort
 .globl irq_handler_swi
 .globl irq_handler_timer
@@ -35,6 +36,13 @@
 .type load_current_task_state STT_FUNC
 
 
+interrupt_handler_prefetch_abort:
+  push {r0-r12, lr}
+
+  bl mem_interrupt_handler_data_abort
+
+  pop {r0-r12, pc}
+
 interrupt_handler_data_abort:
   sub lr, lr, #4
   push {r0-r12, lr}
@@ -42,7 +50,6 @@ interrupt_handler_data_abort:
   bl mem_interrupt_handler_data_abort
 
   pop {r0-r12, pc}
-  //subs pc, lr, #8
 
 
 irq_handler_timer:

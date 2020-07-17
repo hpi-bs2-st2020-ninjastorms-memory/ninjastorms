@@ -30,6 +30,8 @@ void schedule_after_exit(void);
 
 void rebuild_ring_buffer(void);
 
+void init_interrupt_handling(void);
+
 void start_scheduler (void);
 
 void print_ring_buffer_debug_info (void);

@@ -88,7 +88,6 @@ start_scheduler (void)
       current_task = ring_buffer_remove();
       isRunning = 1;
       timer_stop();
-      init_interrupt_handling();
       mem_test_data_abort();
       timer_start(TIMER_LOAD_VALUE);
       load_current_task_state();

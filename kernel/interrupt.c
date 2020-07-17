@@ -27,63 +27,12 @@
 
 #include <stdio.h>
 
-#if BOARD_EV3
-#  define IVT_OFFSET (unsigned int) 0xFFFF0000
-#endif
-
-#if BOARD_VERSATILEPB
-#  define IVT_OFFSET (unsigned int) 0x0
-#endif
-
-// builds the interrupt vector table
-/* 
-	.def _data
-	.ref C_data
-
-	.text
-
-	.align 4
-	.armfunc _data
-	.arm ; Use ARM mode and UAL Syntax
-
-_data .asmfunc
-	SUB LR, LR, #4                   ; construct the return address for the following instruction
-	;SUB LR, LR, #8                  ; construct the return address for the causing instruction
-	SRSDB #0x17!                     ; Save LR_abt and SPSR_abt to Abort Mode stack
-	PUSH {R0-R3, R12}                ; Store AAPCS registers
-
-	; 64-bit Stack alignement neccessary as described in: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0042d/IHI0042D_aapcs.pdf "5.2.1.2 Stack constraints at a public interface"
-	AND R0, SP, #4                   ; Calculate Stack adjustment to 64bit boundary
-    SUB SP, SP, R0                   ; Adjust System Stack
-    PUSH {R0, R1}                    ; Put Stack adjustment and System Mode LR on Stack
-
-	SUB  R0, LR, #4                  ; Copy LR to first C argument register and adjust address to causing address
-	BL C_data                        ; Call second level C Abort handler
-
-	; Undo stack alignment
-    POP {R0, R1}                     ; Get Stack adjustment and System Mode LR from Stack
-    ADD SP, SP, R0                   ; Undo System Stack adjustment
-
-	POP {R0-R3, R12}                 ; Restore AAPCS registers
-	RFEIA SP!                        ; Return using RFE from Abort mode stack
-
-	.endasmfunc
-
-	.end
-   */
-
 void setup_ivt (void) {
-  printf("data abort handler: 0x%x\n", &interrupt_handler_data_abort);
-  printf("mem data abort handler: 0x%x\n", &mem_interrupt_handler_data_abort);
-  // printf("mem_test_data_abort: 0x%x\n", &mem_test_data_abort);
-
   // https://www.scss.tcd.ie/~waldroj/3d1/arm_arm.pdf#page=54
   // http://www.ti.com/lit/ug/sprugm9b/sprugm9b.pdf?ts=1590218446020#page=26
   *(unsigned int*) (IVT_OFFSET + 0x00) = 0;           //TODO: reset
   *(unsigned int*) (IVT_OFFSET + 0x04) = 0xe59ff014;  //ldr pc, [pc, #20] ; 0x20 undefined instruction
   *(unsigned int*) (IVT_OFFSET + 0x08) = 0xe59ff014;  //ldr pc, [pc, #20] ; 0x24 software interrupt
-  // TODO: handle page fault (pre-fetch abort)
-  // https://stackoverflow.com/questions/6292620/why-are-the-return-addresses-of-prefetch-abort-and-data-abort-different-in-arm-e
   *(unsigned int*) (IVT_OFFSET + 0x0c) = 0xe59ff014;  //ldr pc, [pc, #20] ; 0x28 prefetch abort
   *(unsigned int*) (IVT_OFFSET + 0x10) = 0xe59ff014;  //ldr pc, [pc, #20] ; 0x2c data abort
   *(unsigned int*) (IVT_OFFSET + 0x14) = 0xe59ff014;  //ldr pc, [pc, #20] ; 0x30 reserved
@@ -93,7 +42,7 @@ void setup_ivt (void) {
   *(unsigned int*) (IVT_OFFSET + 0x20) = (unsigned int) 0;
   //ATTENTION: don't use software interrupts in supervisor mode
   *(unsigned int*) (IVT_OFFSET + 0x24) = (unsigned int) &syscall_handler;
-  *(unsigned int*) (IVT_OFFSET + 0x28) = (unsigned int) &interrupt_handler_data_abort;
+  *(unsigned int*) (IVT_OFFSET + 0x28) = (unsigned int) &interrupt_handler_prefetch_abort;
   *(unsigned int*) (IVT_OFFSET + 0x2c) = (unsigned int) &interrupt_handler_data_abort;
   *(unsigned int*) (IVT_OFFSET + 0x30) = (unsigned int) 0;
   *(unsigned int*) (IVT_OFFSET + 0x34) = (unsigned int) &irq_handler_timer;

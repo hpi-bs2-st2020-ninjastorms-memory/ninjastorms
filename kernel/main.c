@@ -166,6 +166,8 @@ kernel_main (void)
   puts(shuriken);
 
   add_task(&user_mode_init);
+
+  init_interrupt_handling();
   mem_init();
 
   start_scheduler();

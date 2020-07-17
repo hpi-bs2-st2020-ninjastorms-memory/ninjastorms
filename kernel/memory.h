@@ -31,7 +31,7 @@
 // Reference: http://infocenter.arm.com/help/topic/com.arm.doc.ddi0198e/DDI0198E_arm926ejs_r0p5_trm.pdf#page=72
 typedef uint32_t mem_lvl1_entry_t;
 
-#define MEM_NUM_ENTRIES_TRANSLATION_TABLE 4096
+#define MEM_NUM_ENTRIES_TRANSLATION_TABLE 4096u
 
 typedef struct mem_translation_table_t {
   mem_lvl1_entry_t entries[MEM_NUM_ENTRIES_TRANSLATION_TABLE];
@@ -43,7 +43,7 @@ typedef struct mem_translation_table_t {
 // Reference: http://infocenter.arm.com/help/topic/com.arm.doc.ddi0198e/DDI0198E_arm926ejs_r0p5_trm.pdf#page=78
 typedef uint32_t mem_lvl2_entry_t;
 
-#define MEM_NUM_ENTRIES_COARSE_TABLE 256
+#define MEM_NUM_ENTRIES_COARSE_TABLE 256u
 
 // A coarse page table.
 //

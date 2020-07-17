@@ -36,9 +36,30 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
   }
 
+  .minimal_memory_management_part :
+  {
+    . = ALIGN(4K);
+    _minimal_memory_management_part_start = .;
+
+    libc/*.o;
+    kernel/*.o;
+    //kernel/memory.o;
+    //kernel/interrupt.o;
+    //kernel/interrupt_handler.o;
+
+    _minimal_memory_management_part_end = .;
+  }
+
   .data :
   {
     *(.data)
+
+    . = ALIGN(16K);
+    *(.kernel_page_table)
+
+    . = ALIGN(1K);
+    *(.all_coarse_page_tables)
+    //_data_end = .;
   }
 
   __bss_start = .;

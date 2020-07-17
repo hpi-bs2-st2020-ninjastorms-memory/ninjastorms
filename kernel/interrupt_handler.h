@@ -24,6 +24,7 @@
 #  include <config.h>
 #endif
 
+void interrupt_handler_prefetch_abort (void);
 void interrupt_handler_data_abort (void);
 void irq_handler_timer (void);
 
