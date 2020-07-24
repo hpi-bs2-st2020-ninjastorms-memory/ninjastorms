@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+// See [vprintf] for how formatting works.
 int
 printf (const char* format, ...)
 {
