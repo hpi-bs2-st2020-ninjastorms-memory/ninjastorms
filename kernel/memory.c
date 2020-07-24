@@ -21,6 +21,7 @@
 #include "interrupt.h"
 #include "memory.h"
 
+#include <stddef.h>
 #include <stdio.h>
 
 
@@ -154,37 +155,6 @@
 #define MMU_FAULT_STATUS_TRANSLATION_PAGE 0b0111
 
 
-void dump_uint32(uint32_t value) {
-  printf("0x");
-  for (uint8_t i = 0; i < sizeof(value) * 2; i++) {
-    // printf("%x", *((uint8_t*) ((void*) &value) + i));
-    printf("%x", (value >> (4 * (7 - i))) & 0xf);
-    if (i % 2 == 1 && i > 0) {
-      printf(" ");
-    }
-  }
-}
-
-void dump_bin_uint8(uint8_t value) {
-  for (int i = 7; i >= 0; i--) {
-    printf("%i", (value >> i) & 0b1);
-  }
-}
-
-void dump_bin_uint32(uint32_t value) {
-  printf("0b");
-  for (int i = 31; i >= 0; i--) {
-    printf("%i", (value >> i) & 0b1);
-    if (i % 8 == 0 && i > 0) {
-      printf(" ");
-    }
-  }
-}
-
-// Section boundaries.
-const void* _minimal_memory_management_part_start;
-const void* _minimal_memory_management_part_end;
-
 // The kernel page table.
 __attribute((__section__("kernel_page_table")))
 mem_translation_table_t mem_kernel_table;
@@ -210,6 +180,10 @@ void mem_clear_translation_table(mem_translation_table_t* table) {
 // Creation of tables.
 
 mem_coarse_table_t* mem_create_coarse_table() {
+  if (coarse_tables_used >= MEM_NUM_ENTRIES_TRANSLATION_TABLE) {
+    printf("Can't create a new coarse table because memory is full.");
+    return NULL;
+  }
   mem_coarse_table_t* table = &all_coarse_tables[coarse_tables_used++];
   mem_clear_coarse_table(table);
   return table;
@@ -232,8 +206,7 @@ void mem_add_lvl2_entry_to_coarse_table(
   mem_lvl2_entry_t entry,
   bool error_if_already_exists
 ) {
-  // printf("Adding a lvl2 entry to the coarse table for address 0x%x.\n",
-  //     address_in_page);
+
   uint32_t index = (uint32_t) address_in_page >> 12 & 0xFF;
 
   uint32_t type = LVL2_ENTRY_GET_TYPE(table->entries[index]);
@@ -270,8 +243,6 @@ void mem_add_lvl1_entry_to_translation_table(
   mem_lvl1_entry_t entry,
   bool error_if_already_exists
 ) {
-  // printf("Adding a lvl1 entry to the translation table for address 0x%x.\n",
-  //     address_in_page);
   printf(";");
   uint32_t index = (uint32_t) address_in_page >> 20;
 
@@ -307,12 +278,7 @@ void mem_add_lvl2_entry_to_translation_table(
   mem_lvl2_entry_t entry,
   bool error_if_already_exists
 ) {
-  if ((uint32_t) address_in_page >> 12 == 0x29) {
-    printf("initializing failing entry\n");
-  }
-  // printf("Adding a lvl2 entry to the translation table for address 0x%x.\n",
-  //     address_in_page);
-  // printf(",");
+
   uint32_t index = (uint32_t) address_in_page >> 20;
   mem_lvl1_entry_t table_entry = table->entries[index];
 
@@ -338,8 +304,6 @@ void mem_add_lvl2_entry_to_translation_table(
       error_if_already_exists);
 }
 
-// TODO: default back to normal section?
-
 void mem_init_page_for(void* address) {
   mem_lvl2_entry_t entry = LVL2_ENTRY_DEFAULT;
   LVL2_ENTRY_SET_BASE_POINTER(entry, address);
@@ -353,7 +317,9 @@ void mem_init_page_for(void* address) {
       false);
 }
 
-void* _data_end = (void*) ((uint32_t) (MEM_NUM_ENTRIES_TRANSLATION_TABLE * MEM_NUM_ENTRIES_COARSE_TABLE) / 16 * 4 * 1024);
+// Setting required memory that should be initliazied for the kernel after MMU-activation
+// Currently using 1/8 of VA-Space, this should be improved in the future
+void* _data_end = (void*) ((uint32_t) (MEM_NUM_ENTRIES_TRANSLATION_TABLE * MEM_NUM_ENTRIES_COARSE_TABLE) / 8 * 4 * 1024);
 
 void mem_init_kernel_table(void) {
   // Clear all tables.
@@ -362,93 +328,22 @@ void mem_init_kernel_table(void) {
     mem_clear_coarse_table(&all_coarse_tables[i]);
   }
 
-  // // Ensure that pages exist for all memory areas that are accessed in the
-  // // data abort handler.
-  // for (
-  //   uint32_t i = 0;
-  //   i < MEM_NUM_ENTRIES_TRANSLATION_TABLE * sizeof(mem_lvl1_entry_t);
-  //   i += 4 * 1024
-  // ) {
-  //   mem_init_page_for((void*) ((uint32_t) &mem_kernel_table + i));
-  // }
-  // for (
-  //   uint32_t i = 0;
-  //   i < MEM_NUM_ENTRIES_TRANSLATION_TABLE * sizeof(mem_coarse_table_t);
-  //   i += 4 * 1024
-  // ) {
-  //   mem_init_page_for((void*) ((uint32_t) &all_coarse_tables + i));
-  // }
-  // mem_init_page_for(&coarse_tables_used);
-  // mem_init_page_for(&mem_clear_coarse_table);
-  // mem_init_page_for(&mem_clear_translation_table);
-  // mem_init_page_for(&mem_create_coarse_table);
-  // mem_init_page_for(&mem_add_lvl2_entry_to_coarse_table);
-  // mem_init_page_for(&mem_add_lvl1_entry_to_translation_table);
-  // mem_init_page_for(&mem_add_lvl2_entry_to_translation_table);
-  // mem_init_page_for(&mem_interrupt_handler_data_abort);
-  // mem_init_page_for((void*) 0x3fbdfc0);
-  // mem_init_page_for((void*) 0x3fbefc8);
-  // mem_init_page_for((void*) 0x3fbffd0);
-
-  // printf("_data_end: 0x%x\n", _data_end);
-  printf("start: 0x%x\n", _minimal_memory_management_part_start);
-  printf("end: 0x%x\n", _minimal_memory_management_part_end);
-  for (uint32_t i = (uint32_t) _minimal_memory_management_part_start; i <= (uint32_t) _minimal_memory_management_part_end; i += 4 * 1024) {
-    // printf("init for: 0x%x\n", i);
-    mem_init_page_for((void*) i);
-  }
-
-  // for (
-  //   uint32_t i = IRQ_STACK_ADDRESS - 1;
-  //   i >= ABT_STACK_BASE_ADDRESS - STACK_SIZE;
-  //   i -= 4 * 1024
-  // ) {
-  //   mem_init_page_for((void*) i);
-  // }
-
-  // printf("ivt offset: 0x%x\n", (uint32_t)(void*) IVT_OFFSET);
-  mem_init_page_for((void*) IVT_OFFSET);
-  mem_init_page_for((void*) IRQ_STACK_ADDRESS);
-  mem_init_page_for((void*) SVC_STACK_ADDRESS);
-  mem_init_page_for((void*) TASK_STACK_BASE_ADDRESS);
-  mem_init_page_for((void*) ABT_STACK_BASE_ADDRESS);
-  // mem_init_page_for(&printf);
-  // mem_init_page_for(&vprintf);
-}
-
-void dump_memory_uint32(uint32_t* buffer) {
-  for (int i = 0; i < 32; i++) {
-    uint32_t value = *(buffer + i);
-    dump_uint32(value);
-    printf("    ");
-    dump_bin_uint32(value);
-    printf("\n");
-  }
-}
-
-void dump_memory_uint8(uint8_t* buffer) {
-  for (int i = 0; i < 32; i++) {
-    for (int i = 0; i < 4; i++) {
-      uint8_t value = *(buffer + i);
-      // dump_uint8(value);
-      // printf("    ");
-      dump_bin_uint8(value);
-      printf(" ");
+  // Initialize all required memory.
+  for (uint32_t i = 0; i <= (uint32_t) _data_end; i += 4 * 1024) {
+    if (i >> 12 == 0b10101010101010101010) {
+      // We don't initialize this page to showcase on-demand paging via
+      // [mem_test_data_abort].
+      continue;
     }
-    printf("\n");
+
+    mem_init_page_for((void*) i);
   }
 }
 
 void mem_init(void) {
   printf("Initializing memory…\n");
   mem_init_kernel_table();
-  // printf("Dumping kernel table…\n");
-  // printf("\n");
-  // printf("Translation table:\n");
-  // dump_memory_uint8((uint8_t*) mem_kernel_table);
-  // printf("\n");
-  // printf("First coarse table:\n");
-  // dump_memory_uint8((uint8_t*) all_coarse_tables);
+  printf("Initialized memory tables\n");
 
   // Write the address of the translation table to 0xc2. The register c2
   // (Control Register 2) is the Translation Table Base Register (TTBR), for the
@@ -470,27 +365,10 @@ void mem_init(void) {
   );
 
   printf("Enabling MMU…\n");
-  uint32_t c1, c2, c3;
   asm (
     "MRC p15, 0, R1, c1, c0, 0\n" // Read control register
     "ORR R1, #0x1\n"              // Sets M bit from read Control Register to 1
     "MCR p15, 0, R1, c1, c0, 0\n" // Write control register and enables MMU
-    "NOP\n"
-    "NOP\n"
-    "NOP\n"
-    "NOP\n"
-    "NOP\n"
-    "NOP\n"
-    "NOP\n"
-    "NOP\n"
-    "NOP\n"
-    "NOP\n"
-    "MRC p15, 0, %0, c1, c0, 0\n" // Read control register
-    "ORR %0, #0x1\n"              // Sets M bit from read Control Register to 1
-    "MRC p15, 0, %1, c2, c0, 0\n"
-    "MRC p15, 0, %2, c3, c0, 0\n"
-    ""
-    : "=r" (c1), "=r" (c2), "=r" (c3)
   );
 
   // Virtual mem addresses used by the kernel are the same as underlying
@@ -509,6 +387,7 @@ void mem_test_data_abort(void) {
 }
 
 void mem_interrupt_handler_data_abort(void) {
+  // https://www.scss.tcd.ie/~waldroj/3d1/arm_arm.pdf#page=58
   printf("Handling data abort…\n");
 
   // Read Fault Status Register.
@@ -520,10 +399,6 @@ void mem_interrupt_handler_data_abort(void) {
     : "=r" (fault_status),
       "=r" (fault_address)
   );
-  // dump_uint32(fault_address);
-  // printf("\n");
-  // dump_uint32(fault_status);
-  // printf("\n");
 
   if (fault_status == MMU_FAULT_STATUS_TRANSLATION_PAGE) {
     mem_lvl2_entry_t entry = LVL2_ENTRY_DEFAULT;
@@ -541,8 +416,5 @@ void mem_interrupt_handler_data_abort(void) {
     return;
   }
 
-  // TODO: use MOV?
-  asm("SUBS PC, R14, #0");
-  // TODO: use #8 when handling data abort
+  asm("MOV PC, lr");
 }
-// https://www.scss.tcd.ie/~waldroj/3d1/arm_arm.pdf#page=58

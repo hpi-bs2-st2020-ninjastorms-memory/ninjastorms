@@ -42,7 +42,7 @@ void setup_ivt (void) {
   *(unsigned int*) (IVT_OFFSET + 0x20) = (unsigned int) 0;
   //ATTENTION: don't use software interrupts in supervisor mode
   *(unsigned int*) (IVT_OFFSET + 0x24) = (unsigned int) &syscall_handler;
-  *(unsigned int*) (IVT_OFFSET + 0x28) = (unsigned int) &interrupt_handler_prefetch_abort;
+  *(unsigned int*) (IVT_OFFSET + 0x28) = (unsigned int) 0;
   *(unsigned int*) (IVT_OFFSET + 0x2c) = (unsigned int) &interrupt_handler_data_abort;
   *(unsigned int*) (IVT_OFFSET + 0x30) = (unsigned int) 0;
   *(unsigned int*) (IVT_OFFSET + 0x34) = (unsigned int) &irq_handler_timer;
