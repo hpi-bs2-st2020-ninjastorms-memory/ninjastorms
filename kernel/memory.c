@@ -154,9 +154,9 @@
 //
 // https://developer.arm.com/documentation/ddi0198/e/memory-management-unit/mmu-faults-and-cpu-aborts/fault-address-and-fault-status-registers?lang=en
 #define MMU_FAULT_STATUS_TRANSLATION_PAGE 0b0111
+#define MMU_FAULT_STATUS_TRANSLATION_SECTION 0b0101
 
 #define MEM_SMALLPAGE_SIZE 4096
-
 
 // The kernel page table.
 __attribute((__section__("kernel_page_table")))
@@ -430,7 +430,8 @@ mem_interrupt_handler_data_abort (void)
       "=r" (fault_address)
   );
 
-  if (fault_status == MMU_FAULT_STATUS_TRANSLATION_PAGE)
+  if (fault_status == MMU_FAULT_STATUS_TRANSLATION_PAGE || 
+      fault_status == MMU_FAULT_STATUS_TRANSLATION_SECTION)
     {
       mem_lvl2_entry_t entry = LVL2_ENTRY_DEFAULT;
       LVL2_ENTRY_SET_BASE_POINTER(entry, fault_address);
@@ -439,6 +440,8 @@ mem_interrupt_handler_data_abort (void)
       LVL2_ENTRY_SET_AP1(entry, LVL2_ENTRY_AP_RW_RW);
       LVL2_ENTRY_SET_AP0(entry, LVL2_ENTRY_AP_RW_RW);
       LVL2_ENTRY_SET_TYPE(entry, LVL2_ENTRY_TYPE_SMALL_PAGE);
+
+      printf ("Adding Lvl1 Entry…\n");
 
       mem_add_lvl2_entry_to_translation_table (&mem_kernel_table,
                                                (void*) fault_address, entry,
